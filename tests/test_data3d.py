@@ -1,15 +1,18 @@
 import unittest
+import os
 import dlkit.data3d as data
+
+
+DATA_ROOT_MSD = os.environ.get('DATA_ROOT_MSD')
 
 
 class TestFunctional(unittest.TestCase):
 
     def test_zoom(self):
-        self.assertEqual('foo'.upper(), 'FOO')
+        pass
 
     def test_elastic_transform(self):
-        self.assertTrue('FOO'.isupper())
-        self.assertFalse('Foo'.isupper())
+        pass
 
 
 class TestTransforms(unittest.TestCase):
@@ -39,7 +42,8 @@ class TestTransforms(unittest.TestCase):
         pass
 
 
-class TestDatasets(unittest.TestCase):
+@unittest.skipIf(DATA_ROOT_MSD is None, 'MSD data root is not provided')
+class TestMSD(unittest.TestCase):
 
     pass
 
