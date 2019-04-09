@@ -122,7 +122,7 @@ class Litter:
                     box.append(slice(center - half_size, center + half_size))
                 mask[box] = label
 
-            mask = F.label_elastic_transform(mask, self.alpha, self.sigma, self.random_state)
+            mask = F.elastic_transform(mask, self.alpha, self.sigma, self.random_state)
 
             mask = np.where(mask == self.empty_val, original_mask, mask)
 
@@ -176,7 +176,7 @@ class LabelElasticTransform:
         else:
             sigma = self.sigma
 
-        label = F.label_elastic_transform(label, alpha, sigma, self.random_state)
+        label = F.elastic_transform(label, alpha, sigma, self.random_state)
 
         return {
             **sample,

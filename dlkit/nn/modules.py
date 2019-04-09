@@ -23,7 +23,7 @@ class AppendGrid(nn.Module):
                 raise ValueError('4D or 5D input tensor is expected')
             self.grid = functional.create_meshgrid(size, features.dtype).to(features.device)
             self.grid.unsqueeze_(0)
-        grid = self.grid.expand(features.size(0), *self.grid.size())
+        grid = self.grid.expand(features.size(0), *self.grid.size()[1:])
         return torch.cat((features, grid), dim=1)
 
 

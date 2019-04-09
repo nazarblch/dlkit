@@ -64,5 +64,24 @@ class TestSplit(unittest.TestCase):
             data.split(dataset, num_splits=10, split_num=10)
 
 
+class TestLoader(unittest.TestCase):
+
+    def test_none_all(self):
+        dataset = Dummy([{'x': None}, {'x': None}])
+        loader = iter(data.DataLoader(dataset, 2))
+        self.assertDictEqual(next(loader), {'x': None})
+
+    def test_none_some(self):
+        dataset = Dummy([{'x': 1}, {'x': None}])
+        loader = iter(data.DataLoader(dataset, 2))
+        with self.assertRaises(TypeError):
+            next(loader)
+
+    def test_meta(self):
+        dataset = Dummy([{'_x': 1}, {'_x': None}])
+        loader = iter(data.DataLoader(dataset, 2))
+        self.assertDictEqual(next(loader), {'_x': [1, None]})
+
+
 if __name__ == '__main__':
     unittest.main()
