@@ -21,16 +21,23 @@ class MSD(torch.utils.data.Dataset):
                  store_index=False, store_sample=False):
         """PyTorch dataset for Medical Segmentation Decathlon data.
 
+        Loads each sample into two NumPy arrays. Image is stored
+        under the key `image` and segmentation mask is stored under
+        the key `label`.
+
         Args:
             root: path to one of the MSD tasks
-            test: whether to load test set instead of train
+            test: load test set instead of train
             resolution: resolution in mm
             transform: PyTorch transform
-            ignore_labels: whether to load test set instead of train
-            preserve_original: whether to store the original label
-                along with the original resolution in sample's meta
-            store_index: whether to store sample's index in meta
-            store_sample: whether to store sample's paths in meta
+            ignore_labels: do not load labels
+            preserve_original: store the original label along with
+                the original resolution in sample's meta under the keys
+                `_original_label` and `_original_resolution`
+            store_index: store sample's index in meta under
+                the key`_id`
+            store_sample: store sample's paths in meta under
+                the key`_sample`
         """
         self.root = root
         self.test = test
