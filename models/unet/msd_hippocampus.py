@@ -139,17 +139,17 @@ class UNet3d(nn.Module):
 
 
 def main():
-    writer = Writer('runs/unet/hippocampus', test=TEST)
+    writer = Writer('runs/unet/msd_hippocampus', test=TEST)
 
-    transfrom = data.transforms.Compose([
+    transform = data.transforms.Compose([
         data.transforms.Standardize(),
         data.transforms.Resize(IMAGE_SIZE),
         data.transforms.SqueezeToInterval(clip=(-3, 3)),
         data.transforms.ToTensor(),
     ])
-    train_dataset = data.datasets.MSD(root=TASK, transfrom=transfrom)
+    train_dataset = data.datasets.MSD(root=TASK, transform=transform)
     train_split = data.split(train_dataset, **VAL_SPLIT)[0]
-    valid_dataset = data.datasets.MSD(root=TASK, transfrom=transfrom, preserve_original=True)
+    valid_dataset = data.datasets.MSD(root=TASK, transform=transform, preserve_original=True)
     valid_split = data.split(valid_dataset, **VAL_SPLIT)[1]
     train_loader = data.DataLoader(train_split, batch_size=BATCH_SIZE, shuffle=True, num_workers=2, pin_memory=True)
     valid_loader = data.DataLoader(valid_split, batch_size=BATCH_SIZE, shuffle=False, num_workers=2, pin_memory=True)

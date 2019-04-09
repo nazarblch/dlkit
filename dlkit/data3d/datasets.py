@@ -17,12 +17,25 @@ COLORS = (
 
 class MSD(torch.utils.data.Dataset):
 
-    def __init__(self, root, test=False, resolution=1, transfrom=None, ignore_labels=False, preserve_original=False,
+    def __init__(self, root, test=False, resolution=1, transform=None, ignore_labels=False, preserve_original=False,
                  store_index=False, store_sample=False):
+        """PyTorch dataset for Medical Segmentation Decathlon data.
+
+        Args:
+            root: path to one of the MSD tasks
+            test: whether to load test set instead of train
+            resolution: resolution in mm
+            transform: PyTorch transform
+            ignore_labels: whether to load test set instead of train
+            preserve_original: whether to store the original label
+                along with the original resolution in sample's meta
+            store_index: whether to store sample's index in meta
+            store_sample: whether to store sample's paths in meta
+        """
         self.root = root
         self.test = test
         self.resolution = resolution
-        self.transfrom = transfrom
+        self.transform = transform
         self.ignore_labels = ignore_labels
         self.preserve_original = preserve_original
         self.store_index = store_index
@@ -90,8 +103,8 @@ class MSD(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         sample = self.load_numpy(index)
-        if self.transfrom:
-            sample = self.transfrom(sample)
+        if self.transform:
+            sample = self.transform(sample)
         return sample
 
     def __len__(self):
