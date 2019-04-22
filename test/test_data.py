@@ -1,10 +1,12 @@
 import unittest
 import numpy as np
-import dlkit.data as data
-import torch.utils.data
+from dlkit.data_loader.DataLoader import DataLoader
 
 
-class Dummy(torch.utils.data.Dataset):
+from dlkit.data_loader.Dataset import Dataset
+
+
+class Dummy(Dataset):
 
     def __init__(self, seq):
         self.seq = seq
@@ -27,7 +29,7 @@ class TestSplit(unittest.TestCase):
 
     def test_reproducibility(self):
         dataset = Dummy(np.arange(10))
-        train, val, test = data.split(dataset, num_splits=9, test=0.1, split_num=0, seed=94)
+        train, val, test = dataset.split(num_splits=9, test=0.1, split_num=0, seed=94)
         self.assertEqual(to_set(train), {7, 8, 1, 9, 3, 5, 0, 2})
         self.assertEqual(to_set(val), {6})
         self.assertEqual(to_set(test), {4})
@@ -43,7 +45,7 @@ class TestSplit(unittest.TestCase):
         all_samples = to_set(dataset)
         results = []
         for i in range(num_splits):
-            train, valid, test = data.split(dataset, num_splits=num_splits, test=test_frac, split_num=i, seed=seed)
+            train, valid, test = dataset.split(num_splits=num_splits, test=test_frac, split_num=i, seed=seed)
             train, valid, test = to_set(train), to_set(valid), to_set(test)
             # check that train, valid and test splits do not intersect
             self.assertEmpty(train & valid & test)
@@ -61,25 +63,25 @@ class TestSplit(unittest.TestCase):
     def test_max_split_num(self):
         dataset = Dummy(100)
         with self.assertRaises(IndexError):
-            data.split(dataset, num_splits=10, split_num=10)
+            dataset.split(num_splits=10, split_num=10)
 
 
 class TestLoader(unittest.TestCase):
 
     def test_none_all(self):
         dataset = Dummy([{'x': None}, {'x': None}])
-        loader = iter(data.DataLoader(dataset, 2))
+        loader = iter(DataLoader(dataset, 2))
         self.assertDictEqual(next(loader), {'x': None})
 
     def test_none_some(self):
         dataset = Dummy([{'x': 1}, {'x': None}])
-        loader = iter(data.DataLoader(dataset, 2))
+        loader = iter(DataLoader(dataset, 2))
         with self.assertRaises(TypeError):
             next(loader)
 
     def test_meta(self):
         dataset = Dummy([{'_x': 1}, {'_x': None}])
-        loader = iter(data.DataLoader(dataset, 2))
+        loader = iter(DataLoader(dataset, 2))
         self.assertDictEqual(next(loader), {'_x': [1, None]})
 
 

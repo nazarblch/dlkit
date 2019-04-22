@@ -6,7 +6,7 @@ import warnings
 
 
 def zoom(image, zoom_factor, order=3):
-    """Analogous to 2D `scipy.ndimage.zoom`, but for 3D data.
+    """Analogous to 2D `scipy.ndimage.zoom`, but for 3D data_loader.
 
     For 4D inputs the first dimension is considered channels.
     Interpolation is performed for each channel separately.

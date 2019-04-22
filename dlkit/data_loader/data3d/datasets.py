@@ -5,8 +5,7 @@ import nibabel
 
 import torch.utils.data
 
-from dlkit.data3d import functional
-
+from dlkit.data_loader.data3d import functional
 
 COLORS = (
     ( 64,  64, 64 ),
@@ -19,7 +18,7 @@ class MSD(torch.utils.data.Dataset):
 
     def __init__(self, root, test=False, resolution=1, transform=None, ignore_labels=False, preserve_original=False,
                  store_index=False, store_sample=False):
-        """PyTorch dataset for Medical Segmentation Decathlon data.
+        """PyTorch dataset for Medical Segmentation Decathlon data_loader.
 
         Loads each sample into two NumPy arrays. Image is stored
         under the key `image` and segmentation mask is stored under

@@ -5,14 +5,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import dlkit.data3d as data
+import dlkit.data_loader.data3d as data
 import dlkit.util
 import dlkit.nn
-from dlkit.writer import Writer
-from dlkit.metrics.binary import compute_metrics
+from Writer import Writer
+from metrics.binary import compute_metrics
 
 
-TASK = '/data/MSD/Task04_Hippocampus/'
+TASK = '/data_loader/MSD/Task04_Hippocampus/'
 NUM_EPOCHS = 250
 BATCH_SIZE = 12
 IMAGE_SIZE = (48, 64, 48)
@@ -141,15 +141,15 @@ class UNet3d(nn.Module):
 def main():
     writer = Writer('runs/unet/msd_hippocampus', test=TEST)
 
-    transform = data.transforms.Compose([
-        data.transforms.Standardize(),
-        data.transforms.Resize(IMAGE_SIZE),
-        data.transforms.SqueezeToInterval(clip=(-3, 3)),
-        data.transforms.ToTensor(),
+    transform = data.data3d.transforms.Compose([
+        data.data3d.transforms.Standardize(),
+        data.data3d.transforms.Resize(IMAGE_SIZE),
+        data.data3d.transforms.SqueezeToInterval(clip=(-3, 3)),
+        data.data3d.transforms.ToTensor(),
     ])
-    train_dataset = data.datasets.MSD(root=TASK, transform=transform)
+    train_dataset = data.data3d.datasets.MSD(root=TASK, transform=transform)
     train_split = data.split(train_dataset, **VAL_SPLIT)[0]
-    valid_dataset = data.datasets.MSD(root=TASK, transform=transform, preserve_original=True)
+    valid_dataset = data.data3d.datasets.MSD(root=TASK, transform=transform, preserve_original=True)
     valid_split = data.split(valid_dataset, **VAL_SPLIT)[1]
     train_loader = data.DataLoader(train_split, batch_size=BATCH_SIZE, shuffle=True, num_workers=2, pin_memory=True)
     valid_loader = data.DataLoader(valid_split, batch_size=BATCH_SIZE, shuffle=False, num_workers=2, pin_memory=True)

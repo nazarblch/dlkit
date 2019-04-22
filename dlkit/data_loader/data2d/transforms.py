@@ -3,7 +3,7 @@ import torchvision.transforms.functional as F
 from PIL import Image, ImageFilter
 import numpy as np
 
-from dlkit.data2d import functional
+from dlkit.data_loader.data2d import functional
 
 
 class RenameLabels(object):

@@ -1,7 +1,5 @@
 import unittest
 import os
-import dlkit.data3d as data
-
 
 DATA_ROOT_MSD = os.environ.get('DATA_ROOT_MSD')
 
@@ -42,7 +40,7 @@ class TestTransforms(unittest.TestCase):
         pass
 
 
-@unittest.skipIf(DATA_ROOT_MSD is None, 'MSD data root is not provided')
+@unittest.skipIf(DATA_ROOT_MSD is None, 'MSD data_loader root is not provided')
 class TestMSD(unittest.TestCase):
 
     pass
