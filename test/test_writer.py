@@ -16,7 +16,7 @@ DOC = 'docstring'
 
 SCRIPT = """
 '''{doc}'''
-from dlkit.writer import Writer
+from framework.writer import Writer
 
 {config}
 

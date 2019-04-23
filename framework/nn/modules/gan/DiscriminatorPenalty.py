@@ -3,7 +3,7 @@ from typing import Callable, List
 
 from torch import Tensor
 
-from dlkit.Loss import Loss
+from framework.Loss import Loss
 
 
 class DiscriminatorPenalty(ABC):

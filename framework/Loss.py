@@ -8,3 +8,6 @@ class Loss(Tensor):
 
     def __init__(self, other: Tensor):
         super(Loss, self).__init__(other)
+
+    def __add__(self, other):
+        return Loss(super(Loss, self) + other)
