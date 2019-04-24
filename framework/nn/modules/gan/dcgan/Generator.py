@@ -1,20 +1,19 @@
 import torch
 from torch import Tensor, nn
 
-from framework.nn.modules.common.View import View
 from framework.nn.modules.gan.Generator import Generator as G
+from framework.nn.modules.gan.noise.Noise import Noise
 
 
 class Generator(G):
 
-    def __init__(self, batch_size: int, noise_size: int, device: torch.device):
-        super(Generator, self).__init__(batch_size, noise_size, device)
+    def __init__(self, noise: Noise):
+        super(Generator, self).__init__(noise)
         nc = 3
         ngf = 64
         self.main = nn.Sequential(
             # input is Z, going into a convolution
-            View(batch_size, noise_size, 1, 1),
-            nn.ConvTranspose2d(noise_size, ngf * 8, 4, 1, 0, bias=False),
+            nn.ConvTranspose2d(noise.size, ngf * 8, 4, 1, 0, bias=False),
             nn.BatchNorm2d(ngf * 8),
             nn.ReLU(True),
             # state size. (ngf*8) x 4 x 4
@@ -34,7 +33,6 @@ class Generator(G):
             nn.Tanh()
             # state size. (nc) x 64 x 64
         )
-        super(Generator, self).to(device)
 
-    def forward(self, noise: Tensor) -> Tensor:
-        return self.main(noise)
+    def _forward_impl(self, noise: Tensor) -> Tensor:
+        return self.main(noise.view(*noise.size(), 1, 1))

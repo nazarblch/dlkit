@@ -5,7 +5,7 @@ from framework.nn.modules.gan.Discriminator import Discriminator as D
 
 
 class Discriminator(D):
-    def __init__(self, device: torch.device):
+    def __init__(self):
         super(Discriminator, self).__init__()
         nc = 3
         ndf = 64
@@ -30,7 +30,6 @@ class Discriminator(D):
             nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
             nn.Sigmoid()
         )
-        self.to(device)
 
     def forward(self, x: Tensor) -> Tensor:
         return self.main(x)

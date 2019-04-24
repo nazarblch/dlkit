@@ -9,6 +9,4 @@ from framework.Loss import Loss
 class DiscriminatorPenalty(ABC):
 
     @abstractmethod
-    def __call__(self,
-                 discriminator: Callable[[List[Tensor]], Tensor],
-                 x: List[Tensor]) -> Loss: pass
+    def __call__(self, dx: Tensor, x: List[Tensor]) -> Loss: pass

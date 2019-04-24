@@ -5,57 +5,63 @@ import torch
 from torch import Tensor
 
 from framework.Loss import Loss
-from framework.nn.modules.gan.Discriminator import Discriminator
 from framework.nn.modules.gan.DiscriminatorPenalty import DiscriminatorPenalty
 
 
 class GANLoss(ABC):
 
     __penalties: List[DiscriminatorPenalty] = []
-    __disc_losses: List[Callable[[Tensor, Tensor], Loss]] = []
-    __gen_losses: List[Callable[[Tensor], Loss]] = []
-
-    def __init__(self, discriminator: Discriminator):
-        self.discriminator = discriminator
 
     @abstractmethod
-    def _discriminator_loss(self, dx: Tensor, dy: Tensor) -> Loss: pass
+    def discriminator_loss(self, dx: Tensor, dy: Tensor) -> Loss: pass
 
     @abstractmethod
-    def _generator_loss(self, gz: Tensor) -> Loss: pass
+    def generator_loss(self, dgz: Tensor) -> Loss: pass
 
     def add_penalty(self, pen: DiscriminatorPenalty) -> None:
         self.__penalties.append(pen)
 
-    def add_discriminator_loss(self, loss: Callable[[Tensor, Tensor], Loss]) -> None:
-        self.__disc_losses.append(loss)
+    def add_penalties(self, pens: List[DiscriminatorPenalty]) -> None:
+        self.__penalties.extend(pens)
 
-    def add_generator_loss(self, loss: Callable[[Tensor], Loss]) -> None:
-        self.__gen_losses.append(loss)
+    def get_penalties(self) -> List[DiscriminatorPenalty]:
+        return self.__penalties
 
-    def discriminator_loss(self, x: Tensor, y: Tensor) -> Loss:
-        Dx = self.discriminator.forward(x.detach())
-        Dy = self.discriminator.forward(y.detach())
+    def __add__(self, other):
 
-        alpha = torch.rand(x.size(0), *((1,) * (x.ndimension() - 1)), device=x.device)
-        hat_x = alpha * x.detach() + (1 - alpha) * y.detach()
+        obj = GANLossObject(
+            lambda dx, dy: self.discriminator_loss(dx, dy) + other.discriminator_loss(dx, dy),
+            lambda dgz: self.generator_loss(dgz) + other.generator_loss(dgz)
+        )
 
-        loss_sum: Loss = self._discriminator_loss(Dx, Dy)
+        obj.add_penalties(self.__penalties)
+        obj.add_penalties(other.get_penalties())
+        return obj
 
-        for loss in self.__disc_losses:
-            loss_sum += loss(Dx, Dy)
+    def __mul__(self, weight: float):
 
-        for pen in self.__penalties:
-            loss_sum += pen.__call__(lambda arr: self.discriminator.forward(arr[0]), [hat_x])
+        obj = GANLossObject(
+            lambda dx, dy: self.discriminator_loss(dx, dy) * weight,
+            lambda dgz: self.generator_loss(dgz) * weight
+        )
 
-        return loss_sum
+        obj.add_penalties(self.__penalties)
+        return obj
 
-    def generator_loss(self, gz: Tensor) -> Loss:
 
-        loss_sum: Loss = self._generator_loss(gz)
+class GANLossObject(GANLoss):
 
-        for loss in self.__gen_losses:
-            loss_sum += loss(gz)
+    def __init__(self,
+                 discriminator_loss: Callable[[Tensor, Tensor], Loss],
+                 generator_loss: Callable[[Tensor], Loss]):
+        self.d_loss = discriminator_loss
+        self.g_loss = generator_loss
 
-        return loss_sum
+    def discriminator_loss(self, real: Tensor, fake: Tensor) -> Loss:
+        return self.d_loss(real, fake)
+
+    def generator_loss(self, fake: Tensor) -> Loss:
+        return self.g_loss(fake)
+
+
 

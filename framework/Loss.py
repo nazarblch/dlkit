@@ -11,3 +11,6 @@ class Loss(Tensor):
 
     def __add__(self, other):
         return Loss(super(Loss, self) + other)
+
+    def __mul__(self, weight: float):
+        return Loss(super(Loss, self).__mul__(weight))

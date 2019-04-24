@@ -4,8 +4,8 @@ import torch
 from bokeh.core.property import override
 from torch import Tensor
 
-from dlkit.Loss import Loss
-from dlkit.nn.modules.gan.DiscriminatorPenalty import DiscriminatorPenalty
+from framework.Loss import Loss
+from framework.nn.modules.gan.DiscriminatorPenalty import DiscriminatorPenalty
 
 
 class LipschitzPenalty(DiscriminatorPenalty):
