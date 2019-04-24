@@ -4,16 +4,12 @@ from typing import List, Callable
 import torch
 from torch import Tensor
 
-from dlkit.Loss import Loss
-from dlkit.nn.modules.gan.ConditionalDiscriminator import ConditionalDiscriminator
-from dlkit.nn.modules.gan.DiscriminatorPenalty import DiscriminatorPenalty
+from framework.Loss import Loss
+from framework.nn.modules.gan.ConditionalDiscriminator import ConditionalDiscriminator
+from framework.nn.modules.gan.DiscriminatorPenalty import DiscriminatorPenalty
 
 
 class ConditionalGANLoss(ABC):
-
-    __penalties: List[DiscriminatorPenalty]
-    __disc_losses: List[Callable[[Tensor, Tensor], Loss]]
-    __gen_losses: List[Callable[[Tensor], Loss]]
 
     def __init__(self, discriminator: ConditionalDiscriminator):
         self.discriminator = discriminator

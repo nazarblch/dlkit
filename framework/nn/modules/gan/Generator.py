@@ -1,23 +1,21 @@
 from abc import ABC, abstractmethod
+from typing import Optional, List
 
 import torch
 from torch import Tensor
 
+from .noise.Noise import Noise
+
 
 class Generator(torch.nn.Module, ABC):
 
-    def __init__(self, batch_size: int, noise_size: int, device: torch.device):
+    def __init__(self, noise: Noise):
         super(Generator, self).__init__()
-        self.noise_size: int = noise_size
-        self.batch_size: int = batch_size
-        self.device = device
+        self.noise_gen = noise
 
     @abstractmethod
-    def forward(self, noise: Tensor) -> Tensor: pass
+    def _forward_impl(self, noise: Tensor) -> Tensor: pass
 
-    def gen_and_forward(self) -> Tensor:
-
-        z: Tensor = torch.FloatTensor(self.batch_size, self.noise_size
-                                      ).normal_().to(self.device)
-
-        return self.forward(z)
+    def forward(self, size: int, noise: Optional[Tensor] = None) -> Tensor:
+        z: Tensor = self.noise_gen.sample(size) if noise is None else noise
+        return self._forward_impl(z)

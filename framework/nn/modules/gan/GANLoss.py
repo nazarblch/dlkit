@@ -19,10 +19,10 @@ class GANLoss(ABC):
         self.discriminator = discriminator
 
     @abstractmethod
-    def _discriminator_loss(self, x: Tensor, y: Tensor) -> Loss: pass
+    def _discriminator_loss(self, dx: Tensor, dy: Tensor) -> Loss: pass
 
     @abstractmethod
-    def _generator_loss(self, x: Tensor) -> Loss: pass
+    def _generator_loss(self, gz: Tensor) -> Loss: pass
 
     def add_penalty(self, pen: DiscriminatorPenalty) -> None:
         self.__penalties.append(pen)
@@ -50,12 +50,12 @@ class GANLoss(ABC):
 
         return loss_sum
 
-    def generator_loss(self, Gz: Tensor) -> Loss:
+    def generator_loss(self, gz: Tensor) -> Loss:
 
-        loss_sum: Loss = self._generator_loss(Gz)
+        loss_sum: Loss = self._generator_loss(gz)
 
         for loss in self.__gen_losses:
-            loss_sum += loss(Gz)
+            loss_sum += loss(gz)
 
         return loss_sum
 
