@@ -82,9 +82,6 @@ for epoch in range(5):
 
         imgs = data[0].to(device)
 
-        ############################
-        # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
-        ###########################
         fake = netG.forward(batch_size)
         errD = gan_model.discriminator_loss(imgs, fake)
         errG = gan_model.generator_loss(fake)

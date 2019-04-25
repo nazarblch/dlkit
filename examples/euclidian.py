@@ -1,0 +1,70 @@
+from __future__ import print_function
+import random
+
+import torch
+from torch import Tensor
+import matplotlib.pyplot as plt
+
+from framework.nn.modules.gan.GANModel import GANModel
+from framework.nn.modules.gan.dcgan.DCGANModel import DCGANLoss
+from framework.nn.modules.gan.euclidian.Discriminator import Discriminator
+from framework.nn.modules.gan.euclidian.Generator import Generator
+from framework.nn.modules.gan.noise.normal import NormalNoise
+from framework.nn.modules.gan.optimize import GANOptimizer
+
+batch_size = 256
+noise_size = 2
+
+
+device = torch.device("cuda:1")
+
+noise = NormalNoise(noise_size, device)
+netG = Generator(noise).to(device)
+print(netG)
+
+netD = Discriminator().to(device)
+print(netD)
+
+
+lr = 0.0002
+betas = (0.5, 0.99)
+
+gan_model = GANModel(netG, netD, DCGANLoss())
+optimizer = GANOptimizer(gan_model.generator.parameters(), gan_model.discriminator.parameters(), lr, betas)
+
+n = 5000
+
+xs = (torch.arange(0, n, dtype=torch.float32) / 100.0).view(n, 1)
+ys = torch.cat((xs.cos(), xs.sin()), dim=1)
+
+
+plt.scatter(ys[:, 0].view(n).numpy(), ys[:, 1].view(n).numpy())
+plt.savefig("plot.png")
+
+
+print("Starting Training Loop...")
+
+
+def gen_batch() -> Tensor:
+    i = random.randint(0, n - batch_size)
+    j = i + batch_size
+    return ys[i:j, :]
+
+
+for iter in range(0, 1000):
+
+    data = gen_batch().to(device)
+
+    fake = netG.forward(batch_size)
+    errD = gan_model.discriminator_loss(data, fake)
+    errG = gan_model.generator_loss(fake)
+    optimizer.train_step(errG, errD)
+
+    if iter % 100 == 0:
+        print(str(errD.item()) + ", g = " + str(errG.item()))
+
+
+fake = netG.forward(10 * batch_size)
+plt.scatter(fake[:, 0].cpu().view(10 * batch_size).detach().numpy(),
+            fake[:, 1].cpu().view(10 * batch_size).detach().numpy())
+plt.savefig("plot1.png")

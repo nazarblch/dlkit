@@ -15,4 +15,6 @@ class NormalNoise(Noise):
     def sample(self, n: int) -> Tensor:
         return torch.FloatTensor(n, self.size).normal_(self.m, self.sd).to(self.device)
 
+    def size(self) -> int:
+        return self.size
 

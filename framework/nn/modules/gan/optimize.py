@@ -13,7 +13,7 @@ class GANOptimizer:
                  learning_rate: float,
                  betas=(0.5, 0.99)):
 
-        self.optD = optim.Adam(discriminator_parameters, lr=learning_rate, betas=betas)
+        self.optD = optim.Adam(discriminator_parameters, lr=2*learning_rate, betas=betas)
         self.optG = optim.Adam(generator_parameters, lr=learning_rate, betas=betas)
 
     def train_step(self, generator_loss: Loss, discriminator_loss: Loss):
