@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 
 from framework.nn.modules.gan.GANModel import GANModel
 from framework.nn.modules.gan.dcgan.DCGANModel import DCGANLoss
-from framework.nn.modules.gan.euclidian.Discriminator import Discriminator
-from framework.nn.modules.gan.euclidian.Generator import Generator
+from framework.nn.modules.gan.euclidean.Discriminator import Discriminator
+from framework.nn.modules.gan.euclidean.Generator import Generator
 from framework.nn.modules.gan.noise.normal import NormalNoise
 from framework.nn.modules.gan.optimize import GANOptimizer
 from framework.nn.modules.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
