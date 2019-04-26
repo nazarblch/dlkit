@@ -11,6 +11,8 @@ from framework.nn.modules.gan.euclidian.Discriminator import Discriminator
 from framework.nn.modules.gan.euclidian.Generator import Generator
 from framework.nn.modules.gan.noise.normal import NormalNoise
 from framework.nn.modules.gan.optimize import GANOptimizer
+from framework.nn.modules.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
+from framework.nn.modules.gan.wgan.WassersteinLoss import WassersteinLoss
 
 batch_size = 256
 noise_size = 2
@@ -26,10 +28,15 @@ netD = Discriminator().to(device)
 print(netD)
 
 
-lr = 0.0002
-betas = (0.5, 0.99)
+lr = 0.001
+betas = (0.5, 0.9)
 
-gan_model = GANModel(netG, netD, DCGANLoss())
+gan_model = GANModel(
+    netG,
+    netD,
+    WassersteinLoss(1).add_penalty(AdaptiveLipschitzPenalty(0.0, lr / 100))
+)
+
 optimizer = GANOptimizer(gan_model.generator.parameters(), gan_model.discriminator.parameters(), lr, betas)
 
 n = 5000
@@ -39,7 +46,6 @@ ys = torch.cat((xs.cos(), xs.sin()), dim=1)
 
 
 plt.scatter(ys[:, 0].view(n).numpy(), ys[:, 1].view(n).numpy())
-plt.savefig("plot.png")
 
 
 print("Starting Training Loop...")
@@ -51,7 +57,7 @@ def gen_batch() -> Tensor:
     return ys[i:j, :]
 
 
-for iter in range(0, 1000):
+for iter in range(0, 3000):
 
     data = gen_batch().to(device)
 
@@ -61,10 +67,12 @@ for iter in range(0, 1000):
     optimizer.train_step(errG, errD)
 
     if iter % 100 == 0:
+        print(gan_model.loss.get_penalties()[1].weight)
         print(str(errD.item()) + ", g = " + str(errG.item()))
 
 
-fake = netG.forward(10 * batch_size)
-plt.scatter(fake[:, 0].cpu().view(10 * batch_size).detach().numpy(),
-            fake[:, 1].cpu().view(10 * batch_size).detach().numpy())
-plt.savefig("plot1.png")
+fake = netG.forward(3 * batch_size)
+plt.scatter(fake[:, 0].cpu().view(3 * batch_size).detach().numpy(),
+            fake[:, 1].cpu().view(3 * batch_size).detach().numpy())
+plt.show()
+

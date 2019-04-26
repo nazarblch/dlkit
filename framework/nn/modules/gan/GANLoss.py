@@ -18,8 +18,9 @@ class GANLoss(ABC):
     @abstractmethod
     def generator_loss(self, dgz: Tensor) -> Loss: pass
 
-    def add_penalty(self, pen: DiscriminatorPenalty) -> None:
+    def add_penalty(self, pen: DiscriminatorPenalty):
         self.__penalties.append(pen)
+        return self
 
     def add_penalties(self, pens: List[DiscriminatorPenalty]) -> None:
         self.__penalties.extend(pens)
