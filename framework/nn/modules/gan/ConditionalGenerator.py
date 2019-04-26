@@ -1,22 +1,23 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 import torch
 from torch import Tensor
 
+from framework.nn.modules.gan.noise.Noise import Noise
+
 
 class ConditionalGenerator(torch.nn.Module, ABC):
 
-    def __init__(self, batch_size: int, noise_size: int, device: torch.device):
-        self.noise_size: int = noise_size
-        self.batch_size: int = batch_size
-        self.device = device
+    def __init__(self, noise: Noise):
+        super(ConditionalGenerator, self).__init__()
+        self.noise_gen = noise
 
     @abstractmethod
-    def forward(self, noise: Tensor, condition: Tensor) -> Tensor: pass
+    def _forward_impl(self, noise: Tensor, condition: Tensor) -> Tensor: pass
 
-    def forward(self, condition: Tensor) -> Tensor:
-        z: Tensor = torch.FloatTensor([self.batch_size, self.noise_size],
-                                      device=self.device
-                                      ).normal_()
+    def forward(self, size: int, condition: Tensor, noise: Optional[Tensor] = None) -> Tensor:
+        z: Tensor = self.noise_gen.sample(size) if noise is None else noise
+        return self._forward_impl(z, condition)
 
-        return self.forward(z, condition)
+
