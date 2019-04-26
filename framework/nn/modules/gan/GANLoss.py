@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Callable, Any
+from typing import List, Callable, Any, overload
 
 import torch
 from torch import Tensor
@@ -11,6 +11,29 @@ from framework.nn.modules.gan.DiscriminatorPenalty import DiscriminatorPenalty
 class GANLoss(ABC):
 
     __penalties: List[DiscriminatorPenalty] = []
+
+    def compute_discriminator_loss(self, discriminator: Callable[[List[Tensor]], Tensor],
+                           x: List[Tensor],
+                           y: List[Tensor]) -> Loss:
+        x_detach = [xi.detach().requires_grad_(True) for xi in x]
+        y_detach = [yi.detach().requires_grad_(True) for yi in y]
+
+        Dx = discriminator(x_detach)
+        Dy = discriminator(y_detach)
+
+        loss_sum: Loss = self.discriminator_loss(Dx, Dy)
+
+        for pen in self.get_penalties():
+            loss_sum = loss_sum - pen.__call__(
+                Dx / 2,
+                x_detach
+            )
+            loss_sum = loss_sum - pen.__call__(
+                Dy / 2,
+                y_detach
+            )
+
+        return loss_sum
 
     @abstractmethod
     def discriminator_loss(self, dx: Tensor, dy: Tensor) -> Loss: pass

@@ -16,7 +16,7 @@ class Discriminator(D):
             nn.Linear(ndf, 2 * ndf),
             nn.ReLU(True),
             nn.Linear(2 * ndf, 2 * ndf),
-            nn.ReLU(),
+            nn.ReLU(True),
             nn.Linear(2 * ndf, 1)
         )
 

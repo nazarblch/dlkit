@@ -13,9 +13,9 @@ class WassersteinLoss(GANLoss):
         self.add_penalty(LipschitzPenalty(penalty_weight))
 
     def generator_loss(self, dgz: Tensor) -> Loss:
-        return -dgz.mean()
+        return Loss(-dgz.mean())
 
     def discriminator_loss(self, d_real: Tensor, d_fake: Tensor) -> Loss:
         discriminator_loss = d_real.mean() - d_fake.mean()
 
-        return discriminator_loss
+        return Loss(discriminator_loss)

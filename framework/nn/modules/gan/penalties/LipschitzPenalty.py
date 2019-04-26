@@ -1,7 +1,6 @@
 from typing import Callable, List
 
 import torch
-from bokeh.core.property import override
 from torch import Tensor
 
 from framework.Loss import Loss
@@ -24,4 +23,4 @@ class LipschitzPenalty(DiscriminatorPenalty):
 
         gradients: Tensor = gradients.view(gradients.size(0), -1)
         gradient_penalty_value = ((gradients.norm(2, dim=1) - 1) ** 2).mean()
-        return self.weight * gradient_penalty_value
+        return Loss(self.weight * gradient_penalty_value)

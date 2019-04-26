@@ -2,7 +2,6 @@ import math
 from typing import Callable, List
 
 import torch
-from bokeh.core.property import override
 from torch import Tensor
 
 from framework.Loss import Loss
@@ -29,4 +28,4 @@ class AdaptiveLipschitzPenalty(DiscriminatorPenalty):
         res = self.weight * gradient_penalty_value
         self.weight += self.lr * gradient_penalty_value.item()
         self.weight = max(0, self.weight)
-        return res
+        return Loss(res)

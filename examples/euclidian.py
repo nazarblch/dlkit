@@ -18,7 +18,7 @@ batch_size = 256
 noise_size = 2
 
 
-device = torch.device("cuda:1")
+device = torch.device("cuda:0")
 
 noise = NormalNoise(noise_size, device)
 netG = Generator(noise).to(device)
@@ -57,7 +57,7 @@ def gen_batch() -> Tensor:
     return ys[i:j, :]
 
 
-for iter in range(0, 1000):
+for iter in range(0, 3000):
 
     data = gen_batch().to(device)
 
