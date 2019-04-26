@@ -2,7 +2,7 @@ import torch
 from torch import optim
 
 from framework.nn.modules.gan.GANModel import GANModel
-from framework.nn.modules.gan.euclidian.Discriminator import Discriminator
+from framework.nn.modules.gan.euclidean.Discriminator import Discriminator
 from framework.nn.modules.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
 from framework.nn.modules.gan.wgan.WassersteinLoss import WassersteinLoss
 
