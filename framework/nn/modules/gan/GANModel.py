@@ -28,11 +28,11 @@ class GANModel:
         for pen in self.loss.get_penalties():
             real_detach.requires_grad = True
             fake_detach.requires_grad = True
-            loss_sum += pen.__call__(
+            loss_sum -= pen.__call__(
                 self.discriminator.forward(real_detach) / 2,
                 [real_detach]
             )
-            loss_sum += pen.__call__(
+            loss_sum -= pen.__call__(
                 self.discriminator.forward(fake_detach) / 2,
                 [fake_detach]
             )
@@ -61,8 +61,12 @@ class ConditionalGANModel:
         loss_sum: Loss = self.loss.discriminator_loss(Dreal, Dfake)
 
         for pen in self.loss.get_penalties():
-            loss_sum += pen.__call__(Dreal, [real_detach, condition_detach])
-            loss_sum += pen.__call__(Dfake, [fake_detach, condition_detach])
+            real_detach.requires_grad = True
+            fake_detach.requires_grad = True
+            condition_detach.requires_grad = True
+            loss_sum -= pen.__call__(self.discriminator.forward(real_detach, condition_detach) / 2,
+                                     [real_detach, condition_detach])
+            loss_sum -= pen.__call__( self.discriminator.forward(fake_detach, condition_detach) / 2, [fake_detach, condition_detach])
 
         return loss_sum
 

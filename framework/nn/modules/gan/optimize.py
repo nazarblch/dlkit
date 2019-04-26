@@ -19,7 +19,7 @@ class GANOptimizer:
     def train_step(self, generator_loss: Loss, discriminator_loss: Loss):
 
         self.optD.zero_grad()
-        discriminator_loss.backward()
+        (-discriminator_loss).backward()
         self.optD.step()
 
         self.optG.zero_grad()

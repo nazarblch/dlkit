@@ -18,4 +18,4 @@ class WassersteinLoss(GANLoss):
     def discriminator_loss(self, d_real: Tensor, d_fake: Tensor) -> Loss:
         discriminator_loss = d_real.mean() - d_fake.mean()
 
-        return -discriminator_loss
+        return discriminator_loss

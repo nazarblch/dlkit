@@ -34,7 +34,7 @@ betas = (0.5, 0.9)
 gan_model = GANModel(
     netG,
     netD,
-    WassersteinLoss(1).add_penalty(AdaptiveLipschitzPenalty(0.0, lr / 100))
+    WassersteinLoss(1)
 )
 
 optimizer = GANOptimizer(gan_model.generator.parameters(), gan_model.discriminator.parameters(), lr, betas)
@@ -57,7 +57,7 @@ def gen_batch() -> Tensor:
     return ys[i:j, :]
 
 
-for iter in range(0, 3000):
+for iter in range(0, 1000):
 
     data = gen_batch().to(device)
 
@@ -67,7 +67,7 @@ for iter in range(0, 3000):
     optimizer.train_step(errG, errD)
 
     if iter % 100 == 0:
-        print(gan_model.loss.get_penalties()[1].weight)
+        # print(gan_model.loss.get_penalties()[1].weight)
         print(str(errD.item()) + ", g = " + str(errG.item()))
 
 

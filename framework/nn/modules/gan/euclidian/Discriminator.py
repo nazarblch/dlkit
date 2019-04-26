@@ -16,9 +16,8 @@ class Discriminator(D):
             nn.Linear(ndf, 2 * ndf),
             nn.ReLU(True),
             nn.Linear(2 * ndf, 2 * ndf),
-            nn.ReLU(True),
-            nn.Linear(2 * ndf, 1),
-            nn.Sigmoid()
+            nn.ReLU(),
+            nn.Linear(2 * ndf, 1)
         )
 
     def forward(self, x: Tensor) -> Tensor:

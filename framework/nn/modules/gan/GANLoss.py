@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Callable
+from typing import List, Callable, Any
 
 import torch
 from torch import Tensor

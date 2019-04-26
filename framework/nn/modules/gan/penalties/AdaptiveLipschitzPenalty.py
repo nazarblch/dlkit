@@ -1,4 +1,4 @@
-
+import math
 from typing import Callable, List
 
 import torch
@@ -28,4 +28,5 @@ class AdaptiveLipschitzPenalty(DiscriminatorPenalty):
         gradient_penalty_value = (gradients.norm(2, dim=1) - 1).mean()
         res = self.weight * gradient_penalty_value
         self.weight += self.lr * gradient_penalty_value.item()
+        self.weight = max(0, self.weight)
         return res
