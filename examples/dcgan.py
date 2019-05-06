@@ -17,12 +17,15 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from IPython.display import HTML
 
+from framework.Loss import Loss
 from framework.nn.modules.gan.GANModel import GANModel
 from framework.nn.modules.gan.dcgan.DCGANModel import DCGANLoss
 from framework.nn.modules.gan.dcgan.Discriminator import Discriminator
 from framework.nn.modules.gan.dcgan.Generator import Generator
 from framework.nn.modules.gan.noise.normal import NormalNoise
 from framework.nn.modules.gan.optimize import GANOptimizer
+from framework.nn.modules.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
+from framework.nn.modules.gan.wgan.WassersteinLoss import WassersteinLoss
 
 manualSeed = 999
 random.seed(manualSeed)
@@ -67,11 +70,11 @@ netD.apply(weights_init)
 print(netD)
 
 
-lr = 0.0002
-betas = (0.5, 0.99)
+lr = 0.0001
+betas = (0.5, 0.9)
 
-gan_model = GANModel(netG, netD, DCGANLoss())
-optimizer = GANOptimizer(gan_model.generator.parameters(), gan_model.discriminator.parameters(), lr, betas)
+gan_model = GANModel(netG, netD, WassersteinLoss(1).add_penalty(AdaptiveLipschitzPenalty(1, 0.05)))
+optimizer = GANOptimizer(gan_model.parameters(), lr, betas)
 
 iters = 0
 
@@ -82,17 +85,15 @@ for epoch in range(5):
 
         imgs = data[0].to(device)
 
-        fake = netG.forward(batch_size)
-        errD = gan_model.discriminator_loss(imgs, fake)
-        errG = gan_model.generator_loss(fake)
-        optimizer.train_step(errG, errD)
+        loss = gan_model.loss_pair(imgs)
+        optimizer.train_step(loss)
 
 
         # Output training stats
         if i % 10 == 0:
             print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f'
                   % (epoch, 5, i, len(dataloader),
-                     errD.item(), errG.item()))
+                     loss.discriminator_loss.item(), loss.generator_loss.item()))
 
         if iters % 50 == 0:
             with torch.no_grad():

@@ -31,7 +31,7 @@ class Cityscapes(torchvision.datasets.Cityscapes):
 
     n_classes = len(classes)
 
-    def __init__(self, root, split='train', mode='gtFine', target_type='instance',
+    def __init__(self, root, split='train', mode='fine', target_type='instance',
                  transform=None, target_transform=None, joint_transform=None):
         super().__init__(root, split, mode, target_type, transform, target_transform)
         self.joint_transform = joint_transform

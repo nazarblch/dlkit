@@ -1,10 +1,20 @@
 # Root directory for dataset
+from typing import Tuple, List
+
 import torch
+from torchvision.datasets import Cityscapes
+from torchvision.transforms import transforms
 
-from framework.data_loader.data2d.datasets import Cityscapes
+from framework.data_loader.data2d.segmentation_transform import Transformer
+from framework.nn.modules.gan.GANModel import ConditionalGANModel
+from framework.nn.modules.gan.dcgan.DCGANModel import DCGANLoss
 from framework.nn.modules.gan.image2image.gan_factory import GANFactory
+from framework.nn.modules.gan.optimize import GANOptimizer
+from framework.nn.modules.gan.wgan.WassersteinLoss import WassersteinLoss
+from framework.nn.ops.segmentation.Mask import MaskFactory
+from viz.visualization import show_images
 
-dataroot = "../../celeba"
+dataroot = "/home/nazar/PycharmProjects/segmentation_data"
 # Number of workers for dataloader
 workers = 12
 # Batch size during training
@@ -23,8 +33,24 @@ ndf = 64
 # Number of training epochs
 num_epochs = 30
 
+
+dataset = Cityscapes(dataroot,
+                     split='train',
+                     mode='fine',
+                     target_type='instance',
+                     transform=transforms.Compose([
+                               transforms.Resize(image_size),
+                               transforms.CenterCrop(image_size),
+                               transforms.ToTensor()
+                           ]),
+                     target_transform=transforms.Compose([
+                               transforms.Resize(image_size),
+                               transforms.CenterCrop(image_size),
+                               transforms.ToTensor()
+                           ])
+                     )
+
 # Create the dataloader
-dataset = Cityscapes(dataroot)
 dataloader = torch.utils.data.DataLoader(dataset,
                                          batch_size=batch_size,
                                          shuffle=True,
@@ -37,7 +63,15 @@ device = torch.device("cuda" if (torch.cuda.is_available()) else "cpu")
 G_losses = []
 D_losses = []
 
-netG, netD = GANFactory(image_size, nz, ngf, ndf, nc, device)
+labels_list: List[int] = range(0, 20)
+
+netG, netD = GANFactory(image_size, nz, ngf, ndf, nc, device, labels_list)
+
+lr = 0.0002
+betas = (0.5, 0.9)
+
+gan_model = ConditionalGANModel(netG, netD, WassersteinLoss(0.1))
+optimizer = GANOptimizer(gan_model.parameters(), lr, betas)
 
 
 print("Starting Training Loop...")
@@ -46,28 +80,21 @@ for epoch in range(num_epochs):
     # For each batch in the dataloader
     for i, (imgs, labels) in enumerate(dataloader, 0):
 
+        if labels.size(0) != batch_size:
+            break
+
         imgs_cuda = imgs.to(device)
-        mask = class_map_to_mask(labels.to(device))
+        mask = MaskFactory.from_class_map(labels.to(device), labels_list)
 
-        # segmentation_module.zero_grad()
-        # mask_pred = scores2mask(segmentation_module(imgs_cuda))
-        latent = torch.FloatTensor(imgs_cuda.size(0), nz)
-        latent = latent.normal_().to(device)
-        G_loss, D_loss = ganModel.make_train_step(imgs_cuda, latent, mask)
-        # segmentation_optimizer.step()
+        img_segment, mask_segment = Transformer.get_random_segment_batch(imgs_cuda, mask.data)
+        # print(labels.unique().numpy().tolist())
+        # show_images(img_segment.detach().cpu(), 2, 2)
 
-        # ganModel.G.zero_grad()
-        # segmentation_module.zero_grad()
-        # mask_pred = scores2mask( segmentation_module(imgs_cuda) )
-        # fake = ganModel.G(latent, mask_pred)
-        # fake_mask_pred = scores2mask( segmentation_module(fake) )
-        # cycle_loss = loss_fn(fake_mask_pred, mask_pred.max(1)[1]) + loss_fn(mask_pred, fake_mask_pred.max(1)[1])
-        # (0.2 * cycle_loss).backward()
-        # ganModel.optimizerG.step()
-        # segmentation_optimizer.step()
+        loss = gan_model.loss_pair(img_segment, mask_segment)
+        optimizer.train_step(loss)
 
-        G_losses.append(G_loss)
-        D_losses.append(D_loss)
+        G_losses.append(loss.generator_loss.item())
+        D_losses.append(loss.discriminator_loss.item())
 
         # Output training stats
         if i % 10 == 0:
@@ -75,12 +102,11 @@ for epoch in range(num_epochs):
                   % (epoch, num_epochs, i, len(dataloader),
                         sum(D_losses)/len(D_losses), sum(G_losses)/len(G_losses)))
 
-        # Check how the generator is doing by saving G's output on fixed_noise
         if (i % 50 == 0) or ((epoch == num_epochs-1) and (i == len(dataloader)-1)):
             with torch.no_grad():
-                imlist = ganModel.G(latent, mask).detach().cpu()
+                imlist = netG.forward(batch_size, mask_segment).detach().cpu()
             show_images(imlist, 2, 2)
-            show_segmentation(mask)
+        #     show_segmentation(mask)
 
 
 

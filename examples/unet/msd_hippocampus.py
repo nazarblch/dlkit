@@ -5,9 +5,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import dlkit.data_loader.data3d as data
-import dlkit.util
-import dlkit.nn
+import framework.data_loader.data3d as data
+import framework.util
+import framework.nn
 from Writer import Writer
 from metrics.binary import compute_metrics
 
@@ -163,7 +163,7 @@ def main():
     iteration = 0
     best_val_loss = 99999.
     for epoch in range(1, NUM_EPOCHS + 1):
-        print(dlkit.util.cuda_memory_use())
+        print(framework.util.cuda_memory_use())
         print('Epoch ', epoch, '/', NUM_EPOCHS, writer.dirname)
         for sample in tqdm.tqdm(train_loader):
             iteration += 1
@@ -196,7 +196,7 @@ def main():
                         for out, lbl, spacing in zip(out, sample['_original_label'], sample['_original_resolution']):
                             # to original size and binary mask
                             out = F.interpolate(out.unsqueeze(0), size=lbl.shape, mode='trilinear', align_corners=False)
-                            out = dlkit.nn.logits_to_one_hot(out, dtype=torch.uint8).squeeze()
+                            out = framework.nn.logits_to_one_hot(out, dtype=torch.uint8).squeeze()
                             # other metrics
                             metrics = compute_metrics(lbl, out, ('nsd', 'dsc', 'jsc'), spacing, NSD_TOLERANCE)
                             val_nsd += metrics['nsd']

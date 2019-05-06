@@ -5,7 +5,7 @@ import nibabel
 
 import torch.utils.data
 
-from dlkit.data_loader.data3d import functional
+from framework.data_loader.data3d import functional
 
 COLORS = (
     ( 64,  64, 64 ),

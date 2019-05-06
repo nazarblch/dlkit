@@ -1,12 +1,23 @@
-from torch import nn
+from typing import Tuple, List
 
+from torch import nn
+from torch import device as Device
+
+from framework.nn.modules.gan.ConditionalDiscriminator import ConditionalDiscriminator
+from framework.nn.modules.gan.ConditionalGenerator import ConditionalGenerator
 from framework.nn.modules.gan.image2image.discriminator import Discriminator
 from framework.nn.modules.gan.image2image.unet_generator import UNetGenerator
 from framework.nn.modules.gan.noise.Noise import Noise
 from framework.nn.modules.gan.noise.normal import NormalNoise
 
 
-def GANFactory(image_size, noise_size, generator_size, discriminator_size, out_chanels_count, device):
+def GANFactory(image_size: int,
+               noise_size: int,
+               generator_size: int,
+               discriminator_size: int,
+               out_chanels_count: int,
+               device: Device,
+               labels_list: List[int]) -> Tuple[ConditionalGenerator, ConditionalDiscriminator]:
 
     # custom weights initialization called on netG and netD
     def weights_init(m):
@@ -20,7 +31,7 @@ def GANFactory(image_size, noise_size, generator_size, discriminator_size, out_c
             nn.init.normal_(m.weight.data, 1.0, 0.02)
             nn.init.constant_(m.bias.data, 0)
 
-    mask_channels = 21
+    mask_channels = len(labels_list)
     noise = NormalNoise(noise_size, device)
     netG = UNetGenerator(noise, image_size, mask_channels, out_chanels_count, generator_size).to(device)
     netD = Discriminator(discriminator_size, out_chanels_count + mask_channels, image_size).to(device)

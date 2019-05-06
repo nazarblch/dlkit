@@ -1,3 +1,4 @@
+import torch
 from torch import nn, Tensor
 
 from framework.nn.modules.gan.ConditionalDiscriminator import ConditionalDiscriminator
@@ -42,4 +43,4 @@ class Discriminator(ConditionalDiscriminator):
         )
 
     def forward(self, image: Tensor, mask: Tensor) -> Tensor:
-        return self.main(input)
+        return self.main(torch.cat([image, mask], dim=1))

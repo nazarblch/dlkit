@@ -77,8 +77,7 @@ class UNetGenerator(CG):
             nn.BatchNorm2d(2 * module_size + mask_classes),
             nn.Dropout(),
             nn.LeakyReLU(0.1, inplace=True),
-            nn.ConvTranspose2d(2 * module_size + mask_classes, img_classes * mask_classes, 3, 1, 1, bias=False),
-            nn.Tanh()
+            nn.ConvTranspose2d(2 * module_size + mask_classes, img_classes * mask_classes, 3, 1, 1, bias=False)
         )
 
     def _forward_impl(self, noise: Tensor, mask: Tensor) -> Tensor:

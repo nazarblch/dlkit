@@ -37,7 +37,7 @@ gan_model = GANModel(
     WassersteinLoss(1)
 )
 
-optimizer = GANOptimizer(gan_model.generator.parameters(), gan_model.discriminator.parameters(), lr, betas)
+optimizer = GANOptimizer(gan_model.parameters(), lr, betas)
 
 n = 5000
 
@@ -61,14 +61,12 @@ for iter in range(0, 3000):
 
     data = gen_batch().to(device)
 
-    fake = netG.forward(batch_size)
-    errD = gan_model.discriminator_loss(data, fake)
-    errG = gan_model.generator_loss(fake)
-    optimizer.train_step(errG, errD)
+    loss = gan_model.loss_pair(data)
+    optimizer.train_step(loss)
 
     if iter % 100 == 0:
         # print(gan_model.loss.get_penalties()[1].weight)
-        print(str(errD.item()) + ", g = " + str(errG.item()))
+        print(str(loss.discriminator_loss.item()) + ", g = " + str(loss.generator_loss.item()))
 
 
 fake = netG.forward(3 * batch_size)

@@ -11,7 +11,7 @@ class Generator(G):
         n_out = 2
         ngf = 32
         self.main = nn.Sequential(
-            nn.Linear(noise.size, ngf),
+            nn.Linear(noise.size(), ngf),
             nn.ReLU(True),
             nn.Linear(ngf,  2 * ngf),
             nn.Tanh(),

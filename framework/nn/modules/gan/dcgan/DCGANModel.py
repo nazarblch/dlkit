@@ -12,7 +12,7 @@ class DCGANLoss(GANLoss):
     def generator_loss(self, dgz: Tensor) -> Loss:
         real_labels = torch.full((dgz.size(0),), 1, device=dgz.device)
         errG = self.__criterion(dgz.view(-1).sigmoid(), real_labels)
-        return errG
+        return Loss(errG)
 
     def discriminator_loss(self, dx: Tensor, dy: Tensor) -> Loss:
 
@@ -24,5 +24,5 @@ class DCGANLoss(GANLoss):
         fake_labels = torch.full((batch_size,), 0, device=dx.device)
         err_fake = self.__criterion(dy.view(-1).sigmoid(), fake_labels)
 
-        return -(err_fake + err_real)
+        return Loss(-(err_fake + err_real))
 
