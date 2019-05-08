@@ -6,9 +6,8 @@ from torch import Tensor, LongTensor, FloatTensor
 
 class Mask:
 
-    def __init__(self, data: Tensor, labels_list: List[int]):
+    def __init__(self, data: Tensor):
         self.data = data
-        self.labels_list = labels_list
 
 
 class MaskFactory:
@@ -20,7 +19,8 @@ class MaskFactory:
     @staticmethod
     def from_class_map(labels: LongTensor, labels_list: List[int]) -> Mask:
 
-        masks = [MaskFactory.get_segment_mask(labels, i).view(labels.size(0), 1, *(labels.size()[2:]))
+        masks = [MaskFactory.get_segment_mask(labels, i).view(labels.size(0), 1, *(labels.size()[1:]))
                  for i in labels_list]
-        return Mask(torch.cat(masks, dim=1), labels_list)
+
+        return Mask(torch.cat(masks, dim=1))
 

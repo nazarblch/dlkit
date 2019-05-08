@@ -18,11 +18,16 @@ class GANOptimizer:
 
     def __init__(self,
                  parameters: GANParameters,
-                 learning_rate: float,
+                 generator_learning_rate: float,
+                 discriminator_learning_rate: float,
                  betas=(0.5, 0.9)):
 
-        self.optD = optim.Adam(parameters.discriminator_parameters, lr=3*learning_rate, betas=betas)
-        self.optG = optim.Adam(parameters.generator_parameters, lr=learning_rate, betas=betas)
+        self.optD = optim.Adam(parameters.discriminator_parameters,
+                               lr=discriminator_learning_rate,
+                               betas=betas)
+        self.optG = optim.Adam(parameters.generator_parameters,
+                               lr=generator_learning_rate,
+                               betas=betas)
 
     def train_step(self, loss: GANLossPair):
 
