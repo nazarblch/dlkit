@@ -13,7 +13,7 @@ from framework.nn.modules.gan.noise.Noise import Noise
 
 class UNetGenerator(CG):
 
-    def __init__(self, noise: Noise, image_size, mask_classes, img_classes, gen_size=64, down_conv_count=4):
+    def __init__(self, noise: Noise, image_size, in_channels, out_channels, gen_size=64, down_conv_count=4):
 
         super(UNetGenerator, self).__init__(noise)
 
@@ -24,7 +24,7 @@ class UNetGenerator(CG):
 
         # TODO: create DownBlocksList
         self.down_modules = nn.ModuleList([
-            Down2xConv2d(mask_classes, gen_size)
+            Down2xConv2d(in_channels, gen_size)
         ])
 
         module_size = gen_size
@@ -35,16 +35,16 @@ class UNetGenerator(CG):
         self.down_last_to_noise = nn.Sequential(
             View(-1, module_size * middle_data_size**2),
             nn.Linear(module_size * middle_data_size**2, noise.size()),
-            nn.BatchNorm1d(noise.size(), 0.9),
+            # nn.BatchNorm1d(noise.size(), 0.9),
             nn.Tanh()
         )
 
         self.noise_up_modules = nn.Sequential(
             nn.Linear(2 * noise.size(), 2 * noise.size()),
-            nn.BatchNorm1d(2 * noise.size(), 0.9),
+            # nn.BatchNorm1d(2 * noise.size(), 0.9),
             nn.Tanh(),
             nn.Linear(2 * noise.size(), 2 * noise.size()),
-            nn.BatchNorm1d(2 * noise.size(), 0.9),
+            # nn.BatchNorm1d(2 * noise.size(), 0.9),
             nn.Tanh(),
             View(-1, 2 * noise.size(), 1, 1),
             Up4xConv2d(2 * noise.size(), module_size)
@@ -73,11 +73,11 @@ class UNetGenerator(CG):
         assert len(self.common_up_modules) == len(self.down_modules)
 
         self.gen_out = nn.Sequential(
-            nn.Conv2d(2 * module_size + mask_classes, 2 * module_size + mask_classes, 3, padding=1),
-            nn.BatchNorm2d(2 * module_size + mask_classes),
+            nn.Conv2d(2 * module_size, module_size, 3, padding=1),
+            nn.BatchNorm2d(module_size),
             nn.Dropout(),
             nn.LeakyReLU(0.1, inplace=True),
-            nn.ConvTranspose2d(2 * module_size + mask_classes, img_classes * mask_classes, 3, 1, 1, bias=False)
+            nn.ConvTranspose2d(module_size, out_channels, 3, 1, 1, bias=False)
         )
 
     def _forward_impl(self, noise: Tensor, mask: Tensor) -> Tensor:
@@ -101,11 +101,6 @@ class UNetGenerator(CG):
             z = layer(torch.cat((z, down_list[i]), dim=1))
             i -= 1
 
-        z = self.gen_out(torch.cat((z, mask), dim=1))
+        z = self.gen_out(z)
 
-        gs = z.split(3, dim=1)
-        ss = mask.split(1, dim=1)
-
-        segments = [gs[i] * ss[i] for i in range(len(ss))]
-
-        return reduce(lambda a, b: a + b, segments)
+        return z

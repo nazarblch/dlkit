@@ -2,7 +2,8 @@ from typing import Iterator
 
 import torch
 from torch import Tensor
-from torch.utils.data import DataLoader as DL
+from torch._six import int_classes, string_classes, container_abcs
+from torch.utils.data import DataLoader as DL, dataloader
 
 
 class DataLoader(DL):
@@ -26,12 +27,6 @@ class DataLoader(DL):
         elem_type = type(batch[0])
         if isinstance(batch[0], torch.Tensor):
             out = None
-            if torch.utils.data.dataloader._use_shared_memory:
-                # If we're in a background process, concatenate directly into a
-                # shared memory tensor to avoid an extra copy
-                numel = sum([x.numel() for x in batch])
-                storage = batch[0].storage()._new_shared(numel)
-                out = batch[0].new(storage)
             return torch.stack(batch, 0, out=out)
         elif batch[0] is None:
             assert all(item is None for item in batch)
@@ -48,16 +43,16 @@ class DataLoader(DL):
             if elem.shape == ():  # scalars
                 py_type = float if elem.dtype.name.startswith('float') else int
                 return torch.utils.data.dataloader.numpy_type_map[elem.dtype.name](list(map(py_type, batch)))
-        elif isinstance(batch[0], torch.utils.data.dataloader.int_classes):
+        elif isinstance(batch[0], int_classes):
             return torch.LongTensor(batch)
         elif isinstance(batch[0], float):
             return torch.DoubleTensor(batch)
-        elif isinstance(batch[0], torch.utils.data.dataloader.string_classes):
+        elif isinstance(batch[0], string_classes):
             return batch
-        elif isinstance(batch[0], torch.utils.data.dataloader.container_abcs.Mapping):
+        elif isinstance(batch[0], container_abcs.Mapping):
             return {key: [d[key] for d in batch] if key.startswith('_') else DataLoader.default_collate([d[key] for d in batch])
                     for key in batch[0]}
-        elif isinstance(batch[0], torch.utils.data.dataloader.container_abcs.Sequence):
+        elif isinstance(batch[0], container_abcs.Sequence):
             transposed = zip(*batch)
             return [DataLoader.default_collate(samples) for samples in transposed]
 

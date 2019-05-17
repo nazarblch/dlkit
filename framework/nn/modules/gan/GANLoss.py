@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Callable, Any, overload
 
+import numpy
 import torch
 from torch import Tensor
 
@@ -23,15 +24,13 @@ class GANLoss(ABC):
 
         loss_sum: Loss = self.discriminator_loss(Dx, Dy)
 
+        rand = numpy.random
+
         for pen in self.get_penalties():
-            loss_sum = loss_sum - pen.__call__(
-                Dx / 2,
-                x_detach
-            )
-            loss_sum = loss_sum - pen.__call__(
-                Dy / 2,
-                y_detach
-            )
+            eps = rand.random_sample()
+            x0: List[Tensor] = [xi * eps + yi * (1 - eps) for xi, yi in zip(x_detach, y_detach)]
+            D0 = discriminator(x0)
+            loss_sum = loss_sum - pen.__call__(D0, x0)
 
         return loss_sum
 

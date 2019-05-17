@@ -28,16 +28,16 @@ netD = Discriminator().to(device)
 print(netD)
 
 
-lr = 0.001
+lr = 0.003
 betas = (0.5, 0.9)
 
 gan_model = GANModel(
     netG,
     netD,
-    WassersteinLoss(1)
+    WassersteinLoss(10).add_penalty(AdaptiveLipschitzPenalty(1, 0.05))
 )
 
-optimizer = GANOptimizer(gan_model.parameters(), lr, betas)
+optimizer = GANOptimizer(gan_model.parameters(), lr, 2*lr, betas)
 
 n = 5000
 

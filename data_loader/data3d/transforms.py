@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torchvision.transforms
-from framework.data_loader.data3d import functional as F
+from data_loader.data3d import functional as F
 
 Compose = torchvision.transforms.Compose
 

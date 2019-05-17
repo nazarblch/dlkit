@@ -145,12 +145,12 @@ if __name__ == "__main__":
             label = label.astype(np.uint8)
 
             tiled_images = np.hstack((image, label))
-            # cv2.imwrite("./docs/datasets/cocostuff.png", tiled_images)
+            # cv2.imwrite("./docs/dataset/cocostuff.png", tiled_images)
             plt.imshow(np.dstack((tiled_images[..., 2::-1], tiled_images[..., 3])))
             plt.show()
             break
 
-    class_hierarchy = "./data/datasets/cocostuff/cocostuff_hierarchy.yaml"
+    class_hierarchy = "./data/dataset/cocostuff/cocostuff_hierarchy.yaml"
     data = yaml.load(open(class_hierarchy))
     key = "person"
 

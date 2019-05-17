@@ -30,12 +30,12 @@ def decode_segmap(temp):
         [152, 51, 52],
     ]
 
-    label_colours = dict(zip(range(33), colors))
+    label_colours = dict(zip(range(20), colors))
 
     r = temp.copy()
     g = temp.copy()
     b = temp.copy()
-    for l in range(0, 33):
+    for l in range(0, 20):
         r[temp == l] = label_colours[l][0]
         g[temp == l] = label_colours[l][1]
         b[temp == l] = label_colours[l][2]
@@ -82,7 +82,7 @@ def show_images(imlist, rows, cols):
     plt.show()
 
 
-def show_segmentation(segmlist):
+def show_segmentation(segmlist: torch.Tensor):
     segm_imgs = segmlist[:4].max(1)[1].cpu().numpy()
 
     f, axarr = plt.subplots(2, 2)

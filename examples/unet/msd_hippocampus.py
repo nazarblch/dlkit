@@ -5,14 +5,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import framework.data_loader.data3d as data
-import framework.util
-import framework.nn
-from Writer import Writer
-from metrics.binary import compute_metrics
 
+from data_loader import DataLoader
+from data_loader.data3d import transforms, datasets
 
-TASK = '/data_loader/MSD/Task04_Hippocampus/'
+TASK = '/home/nazar/Downloads/Task06_Lung'
 NUM_EPOCHS = 250
 BATCH_SIZE = 12
 IMAGE_SIZE = (48, 64, 48)
@@ -139,20 +136,16 @@ class UNet3d(nn.Module):
 
 
 def main():
-    writer = Writer('runs/unet/msd_hippocampus', test=TEST)
+    # writer = Writer('runs/unet/msd_hippocampus', test=TEST)
 
-    transform = data.data3d.transforms.Compose([
-        data.data3d.transforms.Standardize(),
-        data.data3d.transforms.Resize(IMAGE_SIZE),
-        data.data3d.transforms.SqueezeToInterval(clip=(-3, 3)),
-        data.data3d.transforms.ToTensor(),
+    transform = transforms.Compose([
+        transforms.Standardize(),
+        transforms.Resize(IMAGE_SIZE),
+        transforms.SqueezeToInterval(clip=(-3, 3)),
+        transforms.ToTensor(),
     ])
-    train_dataset = data.data3d.datasets.MSD(root=TASK, transform=transform)
-    train_split = data.split(train_dataset, **VAL_SPLIT)[0]
-    valid_dataset = data.data3d.datasets.MSD(root=TASK, transform=transform, preserve_original=True)
-    valid_split = data.split(valid_dataset, **VAL_SPLIT)[1]
-    train_loader = data.DataLoader(train_split, batch_size=BATCH_SIZE, shuffle=True, num_workers=2, pin_memory=True)
-    valid_loader = data.DataLoader(valid_split, batch_size=BATCH_SIZE, shuffle=False, num_workers=2, pin_memory=True)
+    train_dataset = datasets.MSD(root=TASK, transform=transform)
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=2, pin_memory=True)
 
     model = UNet3d(train_dataset.n_classes)
     model.cuda()
@@ -163,10 +156,11 @@ def main():
     iteration = 0
     best_val_loss = 99999.
     for epoch in range(1, NUM_EPOCHS + 1):
-        print(framework.util.cuda_memory_use())
-        print('Epoch ', epoch, '/', NUM_EPOCHS, writer.dirname)
+        # print(framework.util.cuda_memory_use())
+        # print('Epoch ', epoch, '/', NUM_EPOCHS, writer.dirname)
         for sample in tqdm.tqdm(train_loader):
             iteration += 1
+            print(iteration)
             img = sample['image'].cuda()
             lbl = sample['label'].cuda().long()
 
@@ -176,44 +170,8 @@ def main():
             loss.backward()
             optimizer.step()
 
-            writer.add_scalar("loss/train", loss.item(), iteration)
-
             if iteration % VAL_FREQ == 0:
                 model.eval()
-                with torch.no_grad():
-                    val_loss = 0.
-                    val_nsd = np.zeros(train_dataset.n_classes)
-                    val_dsc = np.zeros(train_dataset.n_classes)
-                    val_jsc = np.zeros(train_dataset.n_classes)
-                    for sample in valid_loader:
-                        # forward
-                        img = sample['image'].cuda()
-                        lbl = sample['label'].cuda().long()
-                        out = model(img)
-                        # loss
-                        loss = loss_fn(input=out, target=lbl)
-                        val_loss += loss.item() * img.size(0)
-                        for out, lbl, spacing in zip(out, sample['_original_label'], sample['_original_resolution']):
-                            # to original size and binary mask
-                            out = F.interpolate(out.unsqueeze(0), size=lbl.shape, mode='trilinear', align_corners=False)
-                            out = framework.nn.logits_to_one_hot(out, dtype=torch.uint8).squeeze()
-                            # other metrics
-                            metrics = compute_metrics(lbl, out, ('nsd', 'dsc', 'jsc'), spacing, NSD_TOLERANCE)
-                            val_nsd += metrics['nsd']
-                            val_dsc += metrics['dsc']
-                            val_jsc += metrics['jsc']
-                    val_loss /= len(valid_split)
-                    val_nsd /= len(valid_split)
-                    val_dsc /= len(valid_split)
-                    val_jsc /= len(valid_split)
-                    for i, name, _ in valid_dataset.classes:
-                        writer.add_scalar(f'nsd/{i}_{name}', val_nsd[i], iteration)
-                        writer.add_scalar(f'dsc/{i}_{name}', val_dsc[i], iteration)
-                        writer.add_scalar(f'jsc/{i}_{name}', val_jsc[i], iteration)
-                    writer.add_scalar('loss/valid', val_loss, iteration)
-                    if val_loss < best_val_loss:
-                        writer.add_model('unet', model)
-                        best_val_loss = val_loss
                 model.train()
 
 
