@@ -13,9 +13,10 @@ class GANLoss(ABC):
 
     __penalties: List[DiscriminatorPenalty] = []
 
-    def compute_discriminator_loss(self, discriminator: Callable[[List[Tensor]], Tensor],
-                           x: List[Tensor],
-                           y: List[Tensor]) -> Loss:
+    def compute_discriminator_loss(self,
+                                   discriminator: Callable[[List[Tensor]], Tensor],
+                                   x: List[Tensor],
+                                   y: List[Tensor]) -> Loss:
         x_detach = [xi.detach().requires_grad_(True) for xi in x]
         y_detach = [yi.detach().requires_grad_(True) for yi in y]
 
@@ -38,7 +39,7 @@ class GANLoss(ABC):
     def discriminator_loss(self, dx: Tensor, dy: Tensor) -> Loss: pass
 
     @abstractmethod
-    def generator_loss(self, dgz: Tensor) -> Loss: pass
+    def generator_loss(self, dgz: Tensor, real: Tensor, fake: Tensor) -> Loss: pass
 
     def add_penalty(self, pen: DiscriminatorPenalty):
         self.__penalties.append(pen)
@@ -54,7 +55,7 @@ class GANLoss(ABC):
 
         obj = GANLossObject(
             lambda dx, dy: self.discriminator_loss(dx, dy) + other.discriminator_loss(dx, dy),
-            lambda dgz: self.generator_loss(dgz) + other.generator_loss(dgz)
+            lambda dgz, real, fake: self.generator_loss(dgz, real, fake) + other.generator_loss(dgz, real, fake)
         )
 
         obj.add_penalties(self.__penalties)
@@ -65,10 +66,11 @@ class GANLoss(ABC):
 
         obj = GANLossObject(
             lambda dx, dy: self.discriminator_loss(dx, dy) * weight,
-            lambda dgz: self.generator_loss(dgz) * weight
+            lambda dgz, real, fake: self.generator_loss(dgz, real, fake) * weight
         )
 
         obj.add_penalties(self.__penalties)
+
         return obj
 
 
@@ -76,15 +78,15 @@ class GANLossObject(GANLoss):
 
     def __init__(self,
                  discriminator_loss: Callable[[Tensor, Tensor], Loss],
-                 generator_loss: Callable[[Tensor], Loss]):
+                 generator_loss: Callable[[Tensor, Tensor, Tensor], Loss]):
         self.d_loss = discriminator_loss
         self.g_loss = generator_loss
 
-    def discriminator_loss(self, real: Tensor, fake: Tensor) -> Loss:
-        return self.d_loss(real, fake)
+    def discriminator_loss(self, dx: Tensor, dy: Tensor) -> Loss:
+        return self.d_loss(dx, dy)
 
-    def generator_loss(self, fake: Tensor) -> Loss:
-        return self.g_loss(fake)
+    def generator_loss(self, dgz: Tensor, real: Tensor, fake: Tensor) -> Loss:
+        return self.g_loss(dgz, real, fake)
 
 
 

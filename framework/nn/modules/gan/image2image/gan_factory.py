@@ -8,6 +8,7 @@ from framework.nn.modules.gan.ConditionalGenerator import ConditionalGenerator
 from framework.nn.modules.gan.image2image.discriminator import Discriminator
 from framework.nn.modules.gan.image2image.image_to_image_generator import UNetGenerator
 from framework.nn.modules.gan.image2image.mask_to_image_generator import MaskToImageGenerator
+from framework.nn.modules.gan.image2image.residual_generator import ResidualGenerator
 from framework.nn.modules.gan.noise.Noise import Noise
 from framework.nn.modules.gan.noise.normal import NormalNoise
 
@@ -55,6 +56,7 @@ def ImageToImageFactory(image_size: int,
     noise = NormalNoise(noise_size, device)
 
     netG = UNetGenerator(noise, image_size, channels_count, channels_count, generator_size).to(device)
+    # netG = ResidualGenerator(noise, channels_count, channels_count, generator_size, 2, 6).to(device)
     netD = Discriminator(discriminator_size, 2 * channels_count, image_size).to(device)
 
     netG.apply(weights_init)

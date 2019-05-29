@@ -12,7 +12,7 @@ class WassersteinLoss(GANLoss):
     def __init__(self, penalty_weight: float = 1):
         self.add_penalty(LipschitzPenalty(penalty_weight))
 
-    def generator_loss(self, dgz: Tensor) -> Loss:
+    def generator_loss(self, dgz: Tensor, real: Tensor, fake: Tensor) -> Loss:
         return Loss(-dgz.mean())
 
     def discriminator_loss(self, d_real: Tensor, d_fake: Tensor) -> Loss:

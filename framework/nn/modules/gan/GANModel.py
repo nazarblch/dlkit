@@ -28,14 +28,14 @@ class GANModel:
             [fake]
         )
 
-    def generator_loss(self, fake: Tensor) -> Loss:
+    def generator_loss(self, real: Tensor, fake: Tensor) -> Loss:
         DGz = self.discriminator.forward(fake)
-        return self.loss.generator_loss(DGz)
+        return self.loss.generator_loss(DGz, real, fake)
 
     def loss_pair(self, real: Tensor) -> GANLossPair:
         fake = self.generator.forward(real.size(0))
         return GANLossPair(
-            self.generator_loss(fake),
+            self.generator_loss(real, fake),
             self.discriminator_loss(real, fake)
         )
 
@@ -58,14 +58,14 @@ class ConditionalGANModel:
             [fake, condition]
         )
 
-    def generator_loss(self, fake: Tensor, condition: Tensor) -> Loss:
+    def generator_loss(self, real: Tensor, fake: Tensor, condition: Tensor) -> Loss:
         DGz = self.discriminator.forward(fake, condition)
-        return self.loss.generator_loss(DGz)
+        return self.loss.generator_loss(DGz, real, fake)
 
     def loss_pair(self, real: Tensor, condition: Tensor) -> GANLossPair:
         fake = self.generator.forward(real.size(0), condition)
         return GANLossPair(
-            self.generator_loss(fake, condition),
+            self.generator_loss(real, fake, condition),
             self.discriminator_loss(real, fake, condition)
         )
 

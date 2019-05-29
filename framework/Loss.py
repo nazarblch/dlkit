@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 import torch
 from torch import Tensor
@@ -6,7 +6,11 @@ from torch import Tensor
 
 class Loss:
 
-    def __init__(self, tensor: Tensor):
+    @staticmethod
+    def ZERO():
+        return Loss(0)
+
+    def __init__(self, tensor: Union[Tensor, float]):
         self.__tensor = tensor
 
     def __add__(self, other):
@@ -32,3 +36,4 @@ class Loss:
 
     def to_tensor(self) -> Tensor:
         return self.__tensor
+

@@ -9,7 +9,7 @@ class DCGANLoss(GANLoss):
 
     __criterion = nn.BCELoss()
 
-    def generator_loss(self, dgz: Tensor) -> Loss:
+    def generator_loss(self, dgz: Tensor, real: Tensor, fake: Tensor) -> Loss:
         real_labels = torch.full((dgz.size(0),), 1, device=dgz.device)
         errG = self.__criterion(dgz.view(-1).sigmoid(), real_labels)
         return Loss(errG)

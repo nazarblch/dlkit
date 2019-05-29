@@ -20,7 +20,7 @@ class GANOptimizer:
                  parameters: GANParameters,
                  generator_learning_rate: float,
                  discriminator_learning_rate: float,
-                 betas=(0.5, 0.9)):
+                 betas=(0.5, 0.99)):
 
         self.optD = optim.Adam(parameters.discriminator_parameters,
                                lr=discriminator_learning_rate,
