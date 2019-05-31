@@ -1,29 +1,19 @@
 from __future__ import print_function
 #%matplotlib inline
-import argparse
-import os
 import random
-import torch
 import torch.nn as nn
-import torch.nn.parallel
-import torch.backends.cudnn as cudnn
-import torch.optim as optim
 import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from IPython.display import HTML
 
-from framework.Loss import Loss
 from framework.nn.modules.gan.GANModel import GANModel
-from framework.nn.modules.gan.dcgan.DCGANModel import DCGANLoss
 from framework.nn.modules.gan.dcgan.Discriminator import Discriminator
 from framework.nn.modules.gan.dcgan.Generator import Generator
 from framework.nn.modules.gan.noise.normal import NormalNoise
-from framework.nn.modules.gan.optimize import GANOptimizer
+from framework.optim.min_max import MinMaxOptimizer
 from framework.nn.modules.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
 from framework.nn.modules.gan.wgan.WassersteinLoss import WassersteinLoss
 
@@ -74,7 +64,7 @@ lr = 0.0001
 betas = (0.5, 0.9)
 
 gan_model = GANModel(netG, netD, WassersteinLoss(1).add_penalty(AdaptiveLipschitzPenalty(1, 0.05)))
-optimizer = GANOptimizer(gan_model.parameters(), lr, betas)
+optimizer = MinMaxOptimizer(gan_model.parameters(), lr, betas)
 
 iters = 0
 

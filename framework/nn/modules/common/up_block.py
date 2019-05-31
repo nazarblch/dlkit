@@ -31,8 +31,8 @@ class UpBlock(nn.Module):
             ]
 
         model_list += [
-            nn.ReflectionPad2d(3),
-            nn.Conv2d(intermediate_nc, output_nc, kernel_size=7),
+            nn.ReflectionPad2d(2),
+            nn.Conv2d(intermediate_nc, output_nc, kernel_size=5),
             nn.Tanh()
         ]
 

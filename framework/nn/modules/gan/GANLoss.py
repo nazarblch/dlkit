@@ -17,8 +17,8 @@ class GANLoss(ABC):
                                    discriminator: Callable[[List[Tensor]], Tensor],
                                    x: List[Tensor],
                                    y: List[Tensor]) -> Loss:
-        x_detach = [xi.detach().requires_grad_(True) for xi in x]
-        y_detach = [yi.detach().requires_grad_(True) for yi in y]
+        x_detach = [xi.detach() for xi in x]
+        y_detach = [yi.detach() for yi in y]
 
         Dx = discriminator(x_detach)
         Dy = discriminator(y_detach)
@@ -29,7 +29,7 @@ class GANLoss(ABC):
 
         for pen in self.get_penalties():
             eps = rand.random_sample()
-            x0: List[Tensor] = [xi * eps + yi * (1 - eps) for xi, yi in zip(x_detach, y_detach)]
+            x0: List[Tensor] = [(xi * eps + yi * (1 - eps)).detach().requires_grad_(True) for xi, yi in zip(x_detach, y_detach)]
             D0 = discriminator(x0)
             loss_sum = loss_sum - pen.__call__(D0, x0)
 

@@ -19,8 +19,8 @@ class DownBlock(nn.Module):
         activation = nn.ReLU(True)
 
         model_list = [
-            nn.ReflectionPad2d(3),
-            nn.Conv2d(input_nc, intermediate_nc, kernel_size=7, padding=0),
+            nn.ReflectionPad2d(2),
+            nn.Conv2d(input_nc, intermediate_nc, kernel_size=5, padding=0),
             norm_layer(intermediate_nc),
             activation
         ]

@@ -6,11 +6,10 @@ from torch import Tensor
 import matplotlib.pyplot as plt
 
 from framework.nn.modules.gan.GANModel import GANModel
-from framework.nn.modules.gan.dcgan.DCGANModel import DCGANLoss
 from framework.nn.modules.gan.euclidean.Discriminator import Discriminator
 from framework.nn.modules.gan.euclidean.Generator import Generator
 from framework.nn.modules.gan.noise.normal import NormalNoise
-from framework.nn.modules.gan.optimize import GANOptimizer
+from framework.optim.min_max import MinMaxOptimizer
 from framework.nn.modules.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
 from framework.nn.modules.gan.wgan.WassersteinLoss import WassersteinLoss
 
@@ -37,7 +36,7 @@ gan_model = GANModel(
     WassersteinLoss(10).add_penalty(AdaptiveLipschitzPenalty(1, 0.05))
 )
 
-optimizer = GANOptimizer(gan_model.parameters(), lr, 2*lr, betas)
+optimizer = MinMaxOptimizer(gan_model.parameters(), lr, 2 * lr, betas)
 
 n = 5000
 

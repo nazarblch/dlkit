@@ -16,8 +16,8 @@ class ConditionalGenerator(torch.nn.Module, ABC):
     @abstractmethod
     def _forward_impl(self, noise: Tensor, condition: Tensor) -> Tensor: pass
 
-    def forward(self, size: int, condition: Tensor, noise: Optional[Tensor] = None) -> Tensor:
-        z: Tensor = self.noise_gen.sample(size) if noise is None else noise
-        return self._forward_impl(z, condition)
+    def forward(self, condition: Tensor, noise: Optional[Tensor] = None) -> Tensor:
+        z: Tensor = self.noise_gen.sample(condition.size(0)) if noise is None else noise
+        return self._forward_impl(z.to(condition.device), condition)
 
 

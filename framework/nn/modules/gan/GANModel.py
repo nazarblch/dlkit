@@ -1,7 +1,4 @@
-from abc import ABC, abstractmethod
-
 from torch import Tensor
-import torch
 
 from framework.Loss import Loss
 from framework.nn.modules.gan.ConditionalDiscriminator import ConditionalDiscriminator
@@ -9,8 +6,7 @@ from framework.nn.modules.gan.ConditionalGenerator import ConditionalGenerator
 from framework.nn.modules.gan.Discriminator import Discriminator
 from framework.nn.modules.gan.GANLoss import GANLoss
 from framework.nn.modules.gan.Generator import Generator
-from framework.nn.modules.gan.loss_pair import GANLossPair
-from framework.nn.modules.gan.optimize import GANParameters
+from framework.optim.min_max import MinMaxParameters, MinMaxLoss
 
 
 class GANModel:
@@ -32,15 +28,15 @@ class GANModel:
         DGz = self.discriminator.forward(fake)
         return self.loss.generator_loss(DGz, real, fake)
 
-    def loss_pair(self, real: Tensor) -> GANLossPair:
+    def loss_pair(self, real: Tensor) -> MinMaxLoss:
         fake = self.generator.forward(real.size(0))
-        return GANLossPair(
+        return MinMaxLoss(
             self.generator_loss(real, fake),
             self.discriminator_loss(real, fake)
         )
 
-    def parameters(self) -> GANParameters:
-        return GANParameters(self.generator.parameters(), self.discriminator.parameters())
+    def parameters(self) -> MinMaxParameters:
+        return MinMaxParameters(self.generator.parameters(), self.discriminator.parameters())
 
 
 class ConditionalGANModel:
@@ -62,12 +58,12 @@ class ConditionalGANModel:
         DGz = self.discriminator.forward(fake, condition)
         return self.loss.generator_loss(DGz, real, fake)
 
-    def loss_pair(self, real: Tensor, condition: Tensor) -> GANLossPair:
-        fake = self.generator.forward(real.size(0), condition)
-        return GANLossPair(
+    def loss_pair(self, real: Tensor, condition: Tensor) -> MinMaxLoss:
+        fake = self.generator.forward(condition)
+        return MinMaxLoss(
             self.generator_loss(real, fake, condition),
             self.discriminator_loss(real, fake, condition)
         )
 
-    def parameters(self) -> GANParameters:
-        return GANParameters(self.generator.parameters(), self.discriminator.parameters())
+    def parameters(self) -> MinMaxParameters:
+        return MinMaxParameters(self.generator.parameters(), self.discriminator.parameters())
