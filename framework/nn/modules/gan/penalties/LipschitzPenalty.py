@@ -12,11 +12,11 @@ class LipschitzPenalty(DiscriminatorPenalty):
     def __init__(self, weight: float):
         self.weight = weight
 
-    def __call__(self, Dx: Tensor, x: List[Tensor]) -> Loss:
+    def __call__(self, dx: Tensor, x: List[Tensor]) -> Loss:
 
-        gradients = torch.autograd.grad(outputs=Dx,
+        gradients = torch.autograd.grad(outputs=dx,
                                         inputs=x,
-                                        grad_outputs=torch.ones(Dx.size(), device=Dx.device),
+                                        grad_outputs=torch.ones(dx.size(), device=dx.device),
                                         create_graph=True,
                                         retain_graph=True,
                                         only_inputs=True)[0]

@@ -42,5 +42,5 @@ class Discriminator(ConditionalDiscriminator):
             nn.Conv2d(ndf_tmp, 1, 4, 1, 0, bias=False)
         ))
 
-    def forward(self, image: Tensor, mask: Tensor) -> Tensor:
-        return self.main(torch.cat([image, mask], dim=1))
+    def forward(self, image: Tensor, *mask: Tensor) -> Tensor:
+        return self.main(torch.cat((image, mask[0]), dim=1))

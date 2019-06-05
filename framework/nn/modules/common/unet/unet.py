@@ -1,6 +1,6 @@
 import torch
 from torch import nn, Tensor
-from typing import Callable, Optional, List
+from typing import Callable, List
 
 
 class UNet(nn.Module):
@@ -9,8 +9,7 @@ class UNet(nn.Module):
                  n_down: int,
                  in_block: nn.Module,
                  out_block: nn.Module,
-                 middle_block_1: nn.Module,
-                 middle_block_2: Optional[nn.Module],
+                 middle_block: nn.Module,
                  down_block: Callable[[int], nn.Module],
                  up_block: Callable[[int], nn.Module]
                  ):
@@ -18,8 +17,7 @@ class UNet(nn.Module):
 
         self.in_block: nn.Module = in_block
         self.out_block: nn.Module = out_block
-        self.middle_block_1: nn.Module = middle_block_1
-        self.middle_block_2: nn.Module = middle_block_2
+        self.middle_block: nn.Module = middle_block
 
         self.down_blocks = nn.ModuleList([
             down_block(i) for i in range(n_down)
@@ -49,16 +47,11 @@ class UNet(nn.Module):
 
         return self.out_block(middle)
 
-    def forward(self, x: Tensor, middle_x: Optional[Tensor]) -> Tensor:
+    def forward(self, *x: Tensor) -> Tensor:
 
-        down = self._down(x)
+        down = self._down(x[0])
 
-        middle: Tensor = self.middle_block_1(down[-1])
-
-        if middle_x is not None:
-            middle = self.middle_block_2(
-                torch.cat([middle, middle_x], dim=1)
-            )
+        middle: Tensor = self.middle_block(down[-1])
 
         return self._up(middle, down)
 

@@ -2,6 +2,8 @@
 from typing import List
 
 import torch
+from torch import nn, Tensor
+from torch.distributions import Bernoulli
 from torchvision.datasets import Cityscapes
 from torchvision.transforms import transforms
 
@@ -16,12 +18,13 @@ from framework.nn.modules.gan.wgan.WassersteinLoss import WassersteinLoss
 from framework.nn.ops.segmentation.Mask import MaskFactory
 from framework.parallel import ParallelConfig
 from framework.segmentation.split_and_fill import SplitAndFill
-from viz.visualization import show_images
+from framework.segmentation.unet import UNetSegmentation
+from viz.visualization import show_images, show_segmentation
 
 # Number of workers for dataloader
 workers = 20
 # Batch size during training
-batch_size = 32
+batch_size = 16
 # Spatial size of training images. All images will be resized to this
 #   size using a transformer.
 image_size = 128
@@ -61,26 +64,25 @@ dataloader = torch.utils.data.DataLoader(dataset,
 
 labels_list: List[int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 33]
 
-netG, netD = MaskToImageFactory(image_size, nz, ngf, ndf, nc, labels_list)
+segm_net = UNetSegmentation(labels_list.__len__()).to(ParallelConfig.MAIN_DEVICE)
 
-lrG = 0.0001
-lrD = 0.0001
+opt = torch.optim.Adam(segm_net.parameters(), lr=0.001)
 
-# gan_model = ConditionalGANModel(
-#     netG,
-#     netD,
-#     WassersteinLoss(2)
-#         .add_penalty(AdaptiveLipschitzPenalty(1, 0.01))
-#         .add_penalty(L2Penalty(1))
-# )
 
-# vgg_loss_fn = VggGeneratorLoss(ParallelConfig.MAIN_DEVICE)
+def cross_entropy2d(input, target, weight=None, size_average=True):
+    n, c, h, w = input.size()
+    nt, ht, wt = target.size()
 
-# optimizer = MinMaxOptimizer(gan_model.parameters(), lrG, lrD)
+    # Handle inconsistent size between input and target
+    if h != ht or w != wt:
+        input = torch.interpolate(input, size=(ht, wt), mode="bilinear", align_corners=True)
 
-# optG = torch.optim.Adam(gan_model.parameters().min_parameters, lr=0.0001, betas=(0.5, 0.9))
-
-split_model = SplitAndFill(image_size)
+    input = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
+    target = target.view(-1)
+    loss = torch.cross_entropy(
+        input, target, weight=weight, reduction='mean', ignore_index=250
+    )
+    return loss
 
 print("Starting Training Loop...")
 # For each epoch
@@ -88,52 +90,35 @@ for epoch in range(num_epochs):
     # For each batch in the dataloader
     for i, (imgs, labels) in enumerate(dataloader, 0):
 
-        if labels.size(0) != batch_size:
-            break
-
         imgs = imgs.to(ParallelConfig.MAIN_DEVICE)
-        mask = MaskFactory.from_class_map(labels.to(ParallelConfig.MAIN_DEVICE), labels_list)
+        labels = labels.to(ParallelConfig.MAIN_DEVICE)
 
-        # show_segmentation(mask.data)
+        segm: Tensor = segm_net(imgs)
+        mask = MaskFactory.from_class_map(labels, labels_list)
 
-        segment = Transformer.get_random_segment(mask)
-        split_model.train(imgs, segment)
-        # show_images(img_segment.detach().cpu(), 4, 4)
-        print(i)
+        dist = Bernoulli(segm)
+        sample: Tensor = dist.sample()
+        L = (segm * sample + (1 - segm) * (1 - sample)).log().sum() / segm.numel()
 
-        if i % 20 == 0:
-            front, bk = split_model.test(imgs, segment)
-            show_images(front.detach().cpu(), 4, 4)
-            show_images(bk.detach().cpu(), 4, 4)
+        print(L.item())
+        loss = nn.BCELoss()(segm, mask.data) - L
+        # loss = cross_entropy2d(segm, labels)
 
-        # fake = gan_model.generator.forward(mask.data)
-        # vgg_loss = vgg_loss_fn.forward(fake, imgs_cuda)
-
-        # optG.zero_grad()
-        # vgg_loss.minimize()
-        # optG.step()
-
-        # loss: MinMaxLoss = gan_model.loss_pair(imgs, mask.data)
-        # optimizer.train_step(loss)
-
-        # loss: MinMaxLoss = gan_model.loss_pair(img_segment, mask_segment.data)
-        # optimizer.train_step(loss)
-
-        # loss1 = gan_model.loss_pair(imgs_cuda, mask.data)
-        # optimizer.train_step(loss1)
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
 
         # Output training stats
-        # if i % 1 == 0:
+        if i % 1 == 0:
+            print(loss.item())
         #     print('[%d/%d][%d/%d]\tD_Loss: %.4f\tG_Loss: %.4f\tVgg_Loss: %.4f'
         #           % (epoch, num_epochs, i, len(dataloader),
         #              loss.max_loss.item(), loss.min_loss.item(), 1))
 
-        # if (i % 20 == 0) or ((epoch == num_epochs-1) and (i == len(dataloader)-1)):
-        #     with torch.no_grad():
-        #         imlist = netG.forward(mask.data).detach().cpu()
-        #         # show_images(mask.data.detach().cpu(), 4, 4)
-        #         show_images(imlist, 4, 4)
-        #     show_segmentation(mask)
+        if i % 20 == 0:
+            with torch.no_grad():
+                show_images(imgs.cpu(), 4, 4)
+                show_segmentation(segm.cpu())
 
 
 

@@ -2,12 +2,12 @@ import torch
 from typing import Tuple, List
 
 from torch import nn
-from torch import device as Device
+
 
 from framework.nn.modules.gan.ConditionalDiscriminator import ConditionalDiscriminator
 from framework.nn.modules.gan.ConditionalGenerator import ConditionalGenerator
 from framework.nn.modules.gan.image2image.discriminator import Discriminator
-from framework.nn.modules.gan.image2image.image_to_image_generator import UNetGenerator
+from framework.nn.modules.gan.image2image.unet_generator import UNetGenerator
 from framework.nn.modules.gan.image2image.mask_to_image_generator import MaskToImageGenerator
 from framework.nn.modules.gan.image2image.residual_generator import ResidualGenerator
 from framework.nn.modules.gan.noise.Noise import Noise
@@ -78,3 +78,4 @@ def ImageToImageFactory(image_size: int,
         netG = nn.DataParallel(netG, ParallelConfig.GPU_IDS)
 
     return netG, netD
+

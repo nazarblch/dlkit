@@ -2,6 +2,8 @@
 from typing import List
 
 import torch
+from torch import nn
+from torch.distributions import Bernoulli
 from torchvision.datasets import Cityscapes
 from torchvision.transforms import transforms
 
@@ -13,15 +15,16 @@ from framework.nn.modules.gan.penalties.AdaptiveLipschitzPenalty import Adaptive
 from framework.nn.modules.gan.penalties.l2_penalty import L2Penalty
 from framework.nn.modules.gan.vgg.gan_loss import VggGeneratorLoss
 from framework.nn.modules.gan.wgan.WassersteinLoss import WassersteinLoss
-from framework.nn.ops.segmentation.Mask import MaskFactory
+from framework.nn.ops.segmentation.Mask import MaskFactory, Mask
 from framework.parallel import ParallelConfig
 from framework.segmentation.split_and_fill import SplitAndFill
-from viz.visualization import show_images
+from framework.segmentation.unet import UNetSegmentation
+from viz.visualization import show_images, show_segmentation
 
 # Number of workers for dataloader
 workers = 20
 # Batch size during training
-batch_size = 32
+batch_size = 16
 # Spatial size of training images. All images will be resized to this
 #   size using a transformer.
 image_size = 128
@@ -82,6 +85,12 @@ lrD = 0.0001
 
 split_model = SplitAndFill(image_size)
 
+segm_net = nn.DataParallel(
+    UNetSegmentation(labels_list.__len__()).to(ParallelConfig.MAIN_DEVICE),
+    ParallelConfig.GPU_IDS
+)
+segm_opt = torch.optim.Adam(segm_net.parameters(), lr=0.001)
+
 print("Starting Training Loop...")
 # For each epoch
 for epoch in range(num_epochs):
@@ -92,19 +101,34 @@ for epoch in range(num_epochs):
             break
 
         imgs = imgs.to(ParallelConfig.MAIN_DEVICE)
-        mask = MaskFactory.from_class_map(labels.to(ParallelConfig.MAIN_DEVICE), labels_list)
+        # mask = MaskFactory.from_class_map(labels.to(ParallelConfig.MAIN_DEVICE), labels_list)
 
-        # show_segmentation(mask.data)
+        segm: torch.Tensor = segm_net(imgs)
 
-        segment = Transformer.get_random_segment(mask)
+        dist = Bernoulli(segm)
+        sample: torch.Tensor = dist.sample()
+        L = (segm * sample + (1 - segm) * (1 - sample)).log().sum() / segm.numel()
+
+        segment = Transformer.get_random_segment(Mask(sample))
         split_model.train(imgs, segment)
+
+        segm: torch.Tensor = segm_net(imgs)
+
+        segment_test = Transformer.get_random_segment(Mask(segm))
+        segm_loss = split_model.generator_loss(imgs, segment_test)
+
+        segm_net.zero_grad()
+        segm_loss.minimize()
+        segm_opt.step()
         # show_images(img_segment.detach().cpu(), 4, 4)
         print(i)
 
         if i % 20 == 0:
-            front, bk = split_model.test(imgs, segment)
-            show_images(front.detach().cpu(), 4, 4)
-            show_images(bk.detach().cpu(), 4, 4)
+            with torch.no_grad():
+                front, bk = split_model.test(imgs, segment)
+                show_images(front.detach().cpu(), 4, 4)
+                show_images(bk.detach().cpu(), 4, 4)
+                show_segmentation(sample)
 
         # fake = gan_model.generator.forward(mask.data)
         # vgg_loss = vgg_loss_fn.forward(fake, imgs_cuda)

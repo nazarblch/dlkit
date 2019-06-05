@@ -58,8 +58,8 @@ class ConditionalGANModel:
         DGz = self.discriminator.forward(fake, condition)
         return self.loss.generator_loss(DGz, real, fake)
 
-    def loss_pair(self, real: Tensor, condition: Tensor) -> MinMaxLoss:
-        fake = self.generator.forward(condition)
+    def loss_pair(self, real: Tensor, condition: Tensor, *additional_input: Tensor) -> MinMaxLoss:
+        fake = self.generator.forward(condition, *additional_input)
         return MinMaxLoss(
             self.generator_loss(real, fake, condition),
             self.discriminator_loss(real, fake, condition)
