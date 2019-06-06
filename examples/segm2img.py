@@ -16,7 +16,7 @@ from framework.nn.modules.gan.wgan.WassersteinLoss import WassersteinLoss
 from framework.nn.ops.segmentation.Mask import MaskFactory
 from framework.parallel import ParallelConfig
 from framework.segmentation.split_and_fill import SplitAndFill
-from viz.visualization import show_images
+from viz.visualization import show_images, show_segmentation
 
 # Number of workers for dataloader
 workers = 20
@@ -63,24 +63,19 @@ labels_list: List[int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17,
 
 netG, netD = MaskToImageFactory(image_size, nz, ngf, ndf, nc, labels_list)
 
-lrG = 0.0001
-lrD = 0.0001
-
-# gan_model = ConditionalGANModel(
-#     netG,
-#     netD,
-#     WassersteinLoss(2)
-#         .add_penalty(AdaptiveLipschitzPenalty(1, 0.01))
-#         .add_penalty(L2Penalty(1))
-# )
+gan_model = ConditionalGANModel(
+    netG,
+    netD,
+    WassersteinLoss(2)
+        .add_penalty(AdaptiveLipschitzPenalty(0.1, 0.01))
+        .add_penalty(L2Penalty(1))
+)
 
 # vgg_loss_fn = VggGeneratorLoss(ParallelConfig.MAIN_DEVICE)
 
-# optimizer = MinMaxOptimizer(gan_model.parameters(), lrG, lrD)
-
-# optG = torch.optim.Adam(gan_model.parameters().min_parameters, lr=0.0001, betas=(0.5, 0.9))
-
-split_model = SplitAndFill(image_size)
+lrG = 0.0001
+lrD = 0.0001
+optimizer = MinMaxOptimizer(gan_model.parameters(), lrG, lrD)
 
 print("Starting Training Loop...")
 # For each epoch
@@ -94,46 +89,20 @@ for epoch in range(num_epochs):
         imgs = imgs.to(ParallelConfig.MAIN_DEVICE)
         mask = MaskFactory.from_class_map(labels.to(ParallelConfig.MAIN_DEVICE), labels_list)
 
-        # show_segmentation(mask.data)
+        loss: MinMaxLoss = gan_model.loss_pair(imgs, mask.data)
+        optimizer.train_step(loss)
 
-        segment = Transformer.get_random_segment(mask)
-        split_model.train(imgs, segment)
-        # show_images(img_segment.detach().cpu(), 4, 4)
-        print(i)
+        if i % 1 == 0:
+            print('[%d/%d][%d/%d]\tD_Loss: %.4f\tG_Loss: %.4f\tVgg_Loss: %.4f'
+                  % (epoch, num_epochs, i, len(dataloader),
+                     loss.max_loss.item(), loss.min_loss.item(), 1))
 
-        if i % 20 == 0:
-            front, bk = split_model.test(imgs, segment)
-            show_images(front.detach().cpu(), 4, 4)
-            show_images(bk.detach().cpu(), 4, 4)
-
-        # fake = gan_model.generator.forward(mask.data)
-        # vgg_loss = vgg_loss_fn.forward(fake, imgs_cuda)
-
-        # optG.zero_grad()
-        # vgg_loss.minimize()
-        # optG.step()
-
-        # loss: MinMaxLoss = gan_model.loss_pair(imgs, mask.data)
-        # optimizer.train_step(loss)
-
-        # loss: MinMaxLoss = gan_model.loss_pair(img_segment, mask_segment.data)
-        # optimizer.train_step(loss)
-
-        # loss1 = gan_model.loss_pair(imgs_cuda, mask.data)
-        # optimizer.train_step(loss1)
-
-        # Output training stats
-        # if i % 1 == 0:
-        #     print('[%d/%d][%d/%d]\tD_Loss: %.4f\tG_Loss: %.4f\tVgg_Loss: %.4f'
-        #           % (epoch, num_epochs, i, len(dataloader),
-        #              loss.max_loss.item(), loss.min_loss.item(), 1))
-
-        # if (i % 20 == 0) or ((epoch == num_epochs-1) and (i == len(dataloader)-1)):
-        #     with torch.no_grad():
-        #         imlist = netG.forward(mask.data).detach().cpu()
-        #         # show_images(mask.data.detach().cpu(), 4, 4)
-        #         show_images(imlist, 4, 4)
-        #     show_segmentation(mask)
+        if (i % 20 == 0) or ((epoch == num_epochs-1) and (i == len(dataloader)-1)):
+            with torch.no_grad():
+                imlist = netG.forward(mask.data).detach().cpu()
+                # show_images(mask.data.detach().cpu(), 4, 4)
+                show_images(imlist, 4, 4)
+                # show_segmentation(mask.data)
 
 
 
