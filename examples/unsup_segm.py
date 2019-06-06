@@ -22,11 +22,12 @@ from framework.segmentation.mask_to_image import MaskToImage
 from framework.segmentation.split_and_fill import SplitAndFill
 from framework.segmentation.unet import UNetSegmentation
 from viz.visualization import show_images, show_segmentation
+import torch.nn.functional as F
 
 # Number of workers for dataloader
 workers = 20
 # Batch size during training
-batch_size = 32
+batch_size = 40
 # Spatial size of training images. All images will be resized to this
 #   size using a transformer.
 image_size = 128
@@ -42,7 +43,7 @@ ndf = 64
 num_epochs = 30
 
 
-dataroot = "/home/nazar/PycharmProjects/segmentation_data"
+dataroot = "/gpfs/gpfs0/n.buzun/segmentation_data"
 dataset = Cityscapes(dataroot,
                      transform=transforms.Compose([
                                transforms.Resize(image_size),
@@ -68,10 +69,72 @@ labels_list: List[int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17,
 
 segm_net = UNetSegmentation(labels_list.__len__()).to(ParallelConfig.MAIN_DEVICE)
 
-opt = torch.optim.Adam(segm_net.parameters(), lr=0.0005)
+opt = torch.optim.Adam(segm_net.parameters(), lr=0.001)
 
 
 gan = MaskToImage(image_size, labels_list)
+
+
+neighbour_filter: Tensor = torch.zeros(4, 1, 3, 3, dtype=torch.float32).to(ParallelConfig.MAIN_DEVICE)
+neighbour_filter[:, 0, 1, 1] = 1
+neighbour_filter[0, 0, 0, 1] = -1
+neighbour_filter[1, 0, 1, 0] = -1
+neighbour_filter[2, 0, 1, 2] = -1
+neighbour_filter[3, 0, 2, 1] = -1
+
+
+def neighbour_diff_loss(segm: Tensor) -> Loss:
+
+    res = 0
+
+    for segm_i in segm.split(1, dim=1):
+        res += F.conv2d(segm_i, neighbour_filter).abs().mean()
+
+    return Loss(res / segm.shape[1])
+
+
+def train_gan(imgs: Tensor):
+
+    segm_out: Tensor = segm_net(imgs)
+    gan.train(imgs, Mask(
+        Bernoulli(segm_out).sample()
+    ))
+
+
+def train_segm(imgs: Tensor, mask: Mask):
+
+    segm: Tensor = segm_net(imgs)
+    sample = Bernoulli(segm).sample()
+    L = (segm * sample + (1 - segm) * (1 - sample)).log().sum() / segm.numel()
+    loss = gan.generator_loss(imgs, Mask(segm)) - Loss(L) / 10 + neighbour_diff_loss(segm)
+
+    opt.zero_grad()
+    loss.minimize()
+    opt.step()
+
+    print("segm loss:" + str(loss.item()))
+
+    segm: Tensor = segm_net(imgs)
+    fake = gan.gan_model.generator.forward(segm)
+    fake_segm = segm_net(fake)
+    cycle_loss = Loss(
+        nn.BCELoss()(fake_segm, segm.detach())
+        + nn.BCELoss()(segm, fake_segm.detach())
+        + nn.BCELoss()(segm, mask.data.detach())
+    )
+
+    opt.zero_grad()
+    cycle_loss.minimize()
+    opt.step()
+
+
+def show_fake_and_segm(imgs: Tensor):
+
+    with torch.no_grad():
+        segm: Tensor = segm_net(imgs)
+        fake = gan.gan_model.generator(segm).detach()
+        show_images(fake.cpu(), 4, 4)
+        show_segmentation(segm.cpu())
 
 
 print("Starting Training Loop...")
@@ -81,36 +144,14 @@ for epoch in range(num_epochs):
     for i, (imgs, labels) in enumerate(dataloader, 0):
 
         imgs = imgs.to(ParallelConfig.MAIN_DEVICE)
-        # labels = labels.to(ParallelConfig.MAIN_DEVICE)
+        mask = MaskFactory.from_class_map(labels.to(ParallelConfig.MAIN_DEVICE), labels_list)
 
-        segm: Tensor = segm_net(imgs)
-
-        dist = Bernoulli(segm)
-        sample: Tensor = dist.sample()
-
-        gan.train(imgs, Mask(sample))
-
-        segm: Tensor = segm_net(imgs)
-        L = (segm * sample + (1 - segm) * (1 - sample)).log().sum() / segm.numel()
-        loss = gan.generator_loss(imgs, Mask(segm)) - Loss(L)
-        # loss = cross_entropy2d(segm, labels)
-
-        opt.zero_grad()
-        loss.minimize()
-        opt.step()
-
-        # Output training stats
-        if i % 1 == 0:
-            print(loss.item())
-        #     print('[%d/%d][%d/%d]\tD_Loss: %.4f\tG_Loss: %.4f\tVgg_Loss: %.4f'
-        #           % (epoch, num_epochs, i, len(dataloader),
-        #              loss.max_loss.item(), loss.min_loss.item(), 1))
+        train_gan(imgs)
+        train_segm(imgs, mask)
 
         if i % 20 == 0:
-            with torch.no_grad():
-                fake = gan.gan_model.generator(segm).detach()
-                show_images(fake.cpu(), 4, 4)
-                show_segmentation(segm.cpu())
+            show_fake_and_segm(imgs)
+
 
 
 

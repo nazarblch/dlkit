@@ -38,7 +38,6 @@ class Discriminator(ConditionalDiscriminator):
             ndf_tmp = ndf_tmp * 2
 
         self.main.add_module("disc_down_final", nn.Sequential(
-            nn.Dropout(),
             nn.Conv2d(ndf_tmp, 1, 4, 1, 0, bias=False)
         ))
 

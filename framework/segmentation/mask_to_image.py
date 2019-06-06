@@ -10,6 +10,7 @@ from framework.nn.modules.gan.image2image.unet_generator import UNetGenerator
 from framework.nn.modules.gan.noise.normal import NormalNoise
 from framework.nn.modules.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
 from framework.nn.modules.gan.penalties.l2_penalty import L2Penalty
+from framework.nn.modules.gan.vgg.gan_loss import VggGeneratorLoss
 from framework.nn.modules.gan.wgan.WassersteinLoss import WassersteinLoss
 from framework.nn.ops.segmentation.Mask import Mask
 from framework.optim.min_max import MinMaxOptimizer, MinMaxLoss
@@ -45,13 +46,13 @@ class MaskToImage:
             netD,
             WassersteinLoss(2)
                 .add_penalty(AdaptiveLipschitzPenalty(0.1, 0.01))
-                .add_penalty(L2Penalty(1))
+                .add_penalty(L2Penalty(1)) + VggGeneratorLoss(0.5)
         )
 
         # vgg_loss_fn = VggGeneratorLoss(ParallelConfig.MAIN_DEVICE)
 
-        lrG = 0.0001
-        lrD = 0.0001
+        lrG = 0.0002
+        lrD = 0.0002
         self.optimizer = MinMaxOptimizer(self.gan_model.parameters(), lrG, lrD)
 
     def train(self, images: Tensor, masks: Mask):
