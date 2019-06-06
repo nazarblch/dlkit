@@ -9,25 +9,8 @@ from framework.nn.ops.segmentation.Mask import Mask
 
 class Transformer:
 
-    @staticmethod
-    def get_random_segment_batch(images: Tensor, masks: Mask) -> Tuple[Tensor, Mask]:
-        img_list = []
-        mask_list = []
-        for i in range(0, images.size(0)):
-            img_i, mask_i = Transformer.get_random_segment(images[i], masks.data[i])
-            img_list.append(img_i.view(1, *img_i.size()))
-            mask_list.append(mask_i.view(1, *mask_i.size()))
-
-        return torch.cat(img_list, dim=0), Mask(torch.cat(mask_list, dim=0))
-
-    @staticmethod
-    def erase_random_segment_batch(images: Tensor, masks: Mask) -> Tensor:
-        img_list = []
-        for i in range(0, images.size(0)):
-            img_i = Transformer.erase_random_segment(images[i], masks.data[i])
-            img_list.append(img_i.view(1, *img_i.size()))
-
-        return torch.cat(img_list, dim=0)
+    active_ids = set()
+    MIN_SEGMENT_FRACTION = 0.05
 
     @staticmethod
     def generate_segment_index(mask: Tensor) -> int:
@@ -38,30 +21,34 @@ class Transformer:
 
         mask_sum = mask.sum()
         i = 0
-        while mask[index].sum() < 0.1 * mask_sum and i < nc:
+        while mask[index].sum() < mask_sum * Transformer.MIN_SEGMENT_FRACTION and i < nc:
             index = random.randint(0, nc - 1)
             i += 1
+
+        Transformer.active_ids.add(index)
 
         return index
 
     @staticmethod
-    def get_random_segment(img: Tensor, mask: Tensor) -> Tuple[Tensor, Tensor]:
+    def get_random_segment(masks: Mask) -> Mask:
 
-        nc = mask.size(0)
+        nc = masks.data.size(1)
+        batch_size = masks.data.size(0)
+        device = masks.data.device
+        mm: Tensor = torch.zeros((batch_size, nc, masks.data.size(2), masks.data.size(3)), device=device, dtype=torch.float32)
 
-        index = Transformer.generate_segment_index(mask)
+        for i in range(batch_size):
 
-        mm = torch.zeros([nc, 1, 1], device=mask.device, dtype=torch.float32)
-        mm[index, 0, 0] = 1
+            index = Transformer.generate_segment_index(masks.data[i])
+            mm[i, index, :, :] = 1
 
-        segment = mask[index].view(1, *mask.size()[1:])
+        new_mask = masks.data[mm == 1].view(batch_size, 1, masks.data.size(2), masks.data.size(3))
 
-        return img * segment, mask * mm
+        return Mask(new_mask)
 
     @staticmethod
-    def erase_random_segment(img: Tensor, mask: Tensor) -> Tensor:
+    def split_by_random_segment(imgs: Tensor, masks: Mask) -> Tuple[Tensor, Tensor]:
 
-        index = Transformer.generate_segment_index(mask)
-        segment = mask[index].view(1, *mask.size()[1:])
+        segment: Tensor = Transformer.get_random_segment(masks).data
 
-        return img * (torch.ones_like(segment) - segment)
+        return imgs * segment,  imgs * (1 - segment)
