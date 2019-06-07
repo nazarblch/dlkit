@@ -31,7 +31,7 @@ class MinMaxOptimizer:
                  parameters: MinMaxParameters,
                  min_learning_rate: float,
                  max_learning_rate: float,
-                 betas=(0.5, 0.99)):
+                 betas=(0.5, 0.999)):
 
         self.opt_max = optim.Adam(parameters.max_parameters,
                                   lr=max_learning_rate,

@@ -4,6 +4,7 @@ import torch
 
 from torch import nn, Tensor
 
+from framework.Loss import Loss
 from framework.nn.modules.gan.GANModel import ConditionalGANModel
 from framework.nn.modules.gan.image2image.discriminator import Discriminator
 from framework.nn.modules.gan.image2image.unet_generator import UNetGenerator
@@ -36,7 +37,7 @@ class FillGenerator(UNetGenerator):
 
         fake = self.unet.forward(condition, noise)
         segment = additional_input[0]
-        return fake * (1 - segment) + segment * condition
+        return fake * (1 - segment) + segment * condition[:, 0:3, :, :]
 
 
 class SplitAndFill:
@@ -49,11 +50,11 @@ class SplitAndFill:
 
         self.noise = NormalNoise(100, ParallelConfig.MAIN_DEVICE)
 
-        self.bkG = FillGenerator(self.noise, image_size, channels_count, channels_count, generator_size)\
+        self.bkG = FillGenerator(self.noise, image_size, channels_count + 1, channels_count, generator_size)\
             .to(ParallelConfig.MAIN_DEVICE)
-        self.frontG = FillGenerator(self.noise, image_size, channels_count, channels_count, generator_size)\
+        self.frontG = FillGenerator(self.noise, image_size, channels_count + 1, channels_count, generator_size)\
             .to(ParallelConfig.MAIN_DEVICE)
-        self.D = Discriminator(discriminator_size, 2 * channels_count, image_size)\
+        self.D = Discriminator(discriminator_size, 2 * channels_count + 1, image_size)\
             .to(ParallelConfig.MAIN_DEVICE)
 
         self.bkG.apply(weights_init)
@@ -65,9 +66,9 @@ class SplitAndFill:
             self.frontG = nn.DataParallel(self.frontG, ParallelConfig.GPU_IDS)
             self.D = nn.DataParallel(self.D, ParallelConfig.GPU_IDS)
 
-        was_loss = WassersteinLoss(1)\
-            .add_penalty(AdaptiveLipschitzPenalty(0.5, 0.01))\
-            .add_penalty(L2Penalty(0.1))  # + VggGeneratorLoss(2)
+        was_loss = WassersteinLoss(2)\
+            .add_penalty(AdaptiveLipschitzPenalty(0.1, 0.01))\
+            .add_penalty(L2Penalty(0.1))  # + VggGeneratorLoss(0.5)
 
         self.front_gan_model = ConditionalGANModel(self.frontG, self.D, was_loss)
         self.bk_gan_model = ConditionalGANModel(self.bkG, self.D, was_loss)
@@ -78,29 +79,28 @@ class SplitAndFill:
 
     def train(self, images: Tensor, segments: Mask):
 
-        front: Tensor = images * segments.data
-        bk: Tensor = images * (1 - segments.data)
-
+        front: Tensor = torch.cat((images * segments.data, 1 - segments.data), dim=1)
         loss_front: MinMaxLoss = self.front_gan_model.loss_pair(images, front, segments.data)
         self.optimizer_front.train_step(loss_front)
 
+        bk: Tensor = torch.cat((images * (1 - segments.data), segments.data), dim=1)
         loss_bk: MinMaxLoss = self.bk_gan_model.loss_pair(images, bk, 1 - segments.data)
         self.optimizer_bk.train_step(loss_bk)
 
     def test(self, images: Tensor, segments: Mask) -> Tuple[Tensor, Tensor]:
 
-        front: Tensor = images * segments.data
-        bk: Tensor = images * (1 - segments.data)
+        front: Tensor = torch.cat((images * segments.data, 1 - segments.data), dim=1)
+        bk: Tensor = torch.cat((images * (1 - segments.data), segments.data), dim=1)
 
         return self.frontG(front, segments.data), self.bkG(bk, 1 - segments.data)
 
-    def generator_loss(self, images: Tensor, segments: Mask):
+    def generator_loss(self, images: Tensor, segments: Mask) -> Loss:
 
-        front: Tensor = images * segments.data
+        front: Tensor = torch.cat((images * segments.data, 1 - segments.data), dim=1)
         front_fake = self.frontG(front, segments.data)
         loss_front = self.front_gan_model.generator_loss(images, front_fake, front)
 
-        bk: Tensor = images * (1 - segments.data)
+        bk: Tensor = torch.cat((images * (1 - segments.data), segments.data), dim=1)
         bk_fake = self.bkG(bk, 1 - segments.data)
         loss_bk = self.bk_gan_model.generator_loss(images, bk_fake, bk)
 
