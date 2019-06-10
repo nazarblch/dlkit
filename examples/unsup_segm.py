@@ -134,11 +134,13 @@ def train_segm(imgs: Tensor):
     cycle_loss = Loss(
         nn.BCELoss()(fake_segm, segm.detach())
         + nn.BCELoss()(segm, fake_segm.detach())
-    )
+    ) / 5
 
     opt.zero_grad()
+    gan.optimizer.opt_min.zero_grad()
     cycle_loss.minimize()
     opt.step()
+    gan.optimizer.opt_min.step()
 
     segm: Tensor = segm_net(imgs)
     segment = Transformer.get_random_segment(segm)
@@ -146,6 +148,17 @@ def train_segm(imgs: Tensor):
 
     opt.zero_grad()
     split_loss.minimize()
+    opt.step()
+
+
+def train_sup_segm(imgs: Tensor, mask: Mask):
+
+    segm: Tensor = segm_net(imgs)
+
+    loss = nn.BCELoss()(segm, mask.data)
+
+    opt.zero_grad()
+    loss.backward()
     opt.step()
 
 
@@ -165,11 +178,15 @@ for epoch in range(num_epochs):
     for i, (imgs, labels) in enumerate(dataloader, 0):
 
         imgs = imgs.to(ParallelConfig.MAIN_DEVICE)
-        # mask = MaskFactory.from_class_map(labels.to(ParallelConfig.MAIN_DEVICE), labels_list)
 
-        train_gan(imgs)
-        train_split_gan(imgs)
-        train_segm(imgs)
+        if i > 30:
+            train_gan(imgs)
+            train_split_gan(imgs)
+            train_segm(imgs)
+
+        else:
+            mask = MaskFactory.from_class_map(labels.to(ParallelConfig.MAIN_DEVICE), labels_list)
+            train_sup_segm(imgs, mask)
 
         if i % 20 == 0:
             show_fake_and_segm(imgs)
