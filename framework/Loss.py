@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, overload
 
 import torch
 from torch import Tensor
@@ -19,7 +19,7 @@ class Loss:
     def __sub__(self, other):
         return Loss(self.__tensor - other.to_tensor())
 
-    def __mul__(self, weight: float):
+    def __mul__(self, weight: Union[float,  Tensor]):
         return Loss(self.__tensor * weight)
 
     def __truediv__(self, weight: float):

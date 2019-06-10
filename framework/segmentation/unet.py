@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from framework.nn.modules.common.unet.unet import UNet
+from framework.nn.modules.unet.unet import UNet
 
 
 class double_conv(nn.Module):
@@ -99,10 +99,10 @@ class UNetSegmentation(UNet):
             return nn.Sequential(
                 nn.Conv2d(in_ch, out_ch, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(out_ch),
-                nn.LeakyReLU(0.1, inplace=True),
+                nn.ReLU(inplace=True),
                 nn.Conv2d(out_ch, out_ch, 3, stride=1, padding=1),
-                nn.BatchNorm2d(out_ch, 0.8),
-                nn.LeakyReLU(0.1, inplace=True)
+                nn.BatchNorm2d(out_ch),
+                nn.ReLU(inplace=True)
             )
 
         def up_block_factory(i: int) -> nn.Module:
@@ -132,4 +132,5 @@ class UNetSegmentation(UNet):
             down_block=down_block_factory,
             up_block=up_block_factory
         )
+
 

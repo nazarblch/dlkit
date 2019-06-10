@@ -1,3 +1,5 @@
+from functools import reduce
+
 import torch
 from typing import List
 
@@ -5,8 +7,10 @@ from torch import nn, Tensor
 
 from framework.Loss import Loss
 from framework.gan.GANModel import ConditionalGANModel
+from framework.gan.conditional import ConditionalGenerator
 from framework.gan.image2image.discriminator import Discriminator
 from framework.gan.image2image.unet_generator import UNetGenerator
+from framework.gan.noise.Noise import Noise
 from framework.gan.noise.normal import NormalNoise
 from framework.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
 from framework.gan.penalties.l2_penalty import L2Penalty
@@ -18,7 +22,22 @@ from framework.parallel import ParallelConfig
 from framework.segmentation.split_and_fill import weights_init
 
 
-class MaskToImage:
+class CompositeGenerator(ConditionalGenerator):
+
+    def __init__(self, noise: Noise, gen_list: nn.ModuleList):
+        super(CompositeGenerator, self).__init__(noise)
+        self.gen_list = gen_list
+
+    def _forward_impl(self, noise: Tensor, condition: Tensor, *additional_input: Tensor) -> Tensor:
+        assert self.gen_list.__len__() == condition.size(1)
+
+        segments: List[Tensor] = condition.split(1, dim=1)
+        fakes = [self.gen_list[i].forward(condition=s, noise=noise) * s for i, s in enumerate(segments)]
+
+        return reduce(lambda a, b: a + b, fakes)
+
+
+class MaskToImageComposite:
     def __init__(self,
                  image_size: int,
                  labels_list: List[int],
@@ -27,11 +46,15 @@ class MaskToImage:
                  generator_size: int = 32,
                  discriminator_size: int = 32):
 
-        mask_channels = len(labels_list)
+        mask_nc = len(labels_list)
 
-        netG = UNetGenerator(noise, image_size, mask_channels, image_channels_count, generator_size) \
+        gen_list = nn.ModuleList(
+            [UNetGenerator(noise, image_size, 1, image_channels_count, int(generator_size/2), nc_max=256) for i in range(mask_nc)]
+        )
+
+        netG = CompositeGenerator(noise, gen_list) \
             .to(ParallelConfig.MAIN_DEVICE)
-        netD = Discriminator(discriminator_size, image_channels_count + mask_channels, image_size) \
+        netD = Discriminator(discriminator_size, image_channels_count + mask_nc, image_size) \
             .to(ParallelConfig.MAIN_DEVICE)
 
         netG.apply(weights_init)

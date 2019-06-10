@@ -1,10 +1,10 @@
 import torch
 from torch import optim
 
-from framework.nn.modules.gan.GANModel import GANModel
-from framework.nn.modules.gan.euclidean.Discriminator import Discriminator
-from framework.nn.modules.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
-from framework.nn.modules.gan.wgan.WassersteinLoss import WassersteinLoss
+from framework.gan.GANModel import GANModel
+from framework.gan.euclidean import Discriminator
+from framework.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
+from framework.gan.wgan.WassersteinLoss import WassersteinLoss
 
 n = 1000
 xs = (torch.arange(0, n, dtype=torch.float32) / 100.0).view(n, 1)
