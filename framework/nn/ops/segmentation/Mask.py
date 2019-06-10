@@ -6,8 +6,8 @@ from torch import Tensor, LongTensor, FloatTensor
 
 class Mask:
 
-    def __init__(self, data: Tensor):
-        self.data = data
+    def __init__(self, tensor: Tensor):
+        self.tensor = tensor
 
 
 class MaskFactory:

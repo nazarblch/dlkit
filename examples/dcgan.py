@@ -9,13 +9,13 @@ import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
 
-from framework.nn.modules.gan.GANModel import GANModel
-from framework.nn.modules.gan.dcgan.Discriminator import Discriminator
-from framework.nn.modules.gan.dcgan.Generator import Generator
-from framework.nn.modules.gan.noise.normal import NormalNoise
+from framework.gan.GANModel import GANModel
+from framework.gan.dcgan.Discriminator import Discriminator
+from framework.gan.dcgan import Generator
+from framework.gan.noise.normal import NormalNoise
 from framework.optim.min_max import MinMaxOptimizer
-from framework.nn.modules.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
-from framework.nn.modules.gan.wgan.WassersteinLoss import WassersteinLoss
+from framework.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
+from framework.gan.wgan.WassersteinLoss import WassersteinLoss
 
 manualSeed = 999
 random.seed(manualSeed)

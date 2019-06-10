@@ -7,17 +7,10 @@ from torchvision.transforms import transforms
 
 from data_loader.DataPath import DataPath
 from data_loader.data2d.segmentation_transform import Transformer
-from framework.nn.modules.gan.GANModel import ConditionalGANModel
-from framework.nn.modules.gan.image2image.gan_factory import MaskToImageFactory
-from framework.optim.min_max import MinMaxOptimizer, MinMaxLoss
-from framework.nn.modules.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
-from framework.nn.modules.gan.penalties.l2_penalty import L2Penalty
-from framework.nn.modules.gan.vgg.gan_loss import VggGeneratorLoss
-from framework.nn.modules.gan.wgan.WassersteinLoss import WassersteinLoss
 from framework.nn.ops.segmentation.Mask import MaskFactory
 from framework.parallel import ParallelConfig
 from framework.segmentation.split_and_fill import SplitAndFill
-from viz.visualization import show_images, show_segmentation
+from viz.visualization import show_images
 
 # Number of workers for dataloader
 workers = 20

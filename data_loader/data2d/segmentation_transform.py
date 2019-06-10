@@ -32,23 +32,23 @@ class Transformer:
     @staticmethod
     def get_random_segment(masks: Mask) -> Mask:
 
-        nc = masks.data.size(1)
-        batch_size = masks.data.size(0)
-        device = masks.data.device
-        mm: Tensor = torch.zeros((batch_size, nc, masks.data.size(2), masks.data.size(3)), device=device, dtype=torch.float32)
+        nc = masks.tensor.size(1)
+        batch_size = masks.tensor.size(0)
+        device = masks.tensor.device
+        mm: Tensor = torch.zeros((batch_size, nc, masks.tensor.size(2), masks.tensor.size(3)), device=device, dtype=torch.float32)
 
         for i in range(batch_size):
 
-            index = Transformer.generate_segment_index(masks.data[i])
+            index = Transformer.generate_segment_index(masks.tensor[i])
             mm[i, index, :, :] = 1
 
-        new_mask = masks.data[mm == 1].view(batch_size, 1, masks.data.size(2), masks.data.size(3))
+        new_mask = masks.tensor[mm == 1].view(batch_size, 1, masks.tensor.size(2), masks.tensor.size(3))
 
         return Mask(new_mask)
 
     @staticmethod
     def split_by_random_segment(imgs: Tensor, masks: Mask) -> Tuple[Tensor, Tensor]:
 
-        segment: Tensor = Transformer.get_random_segment(masks).data
+        segment: Tensor = Transformer.get_random_segment(masks).tensor
 
         return imgs * segment,  imgs * (1 - segment)

@@ -7,17 +7,8 @@ from torch.distributions import Bernoulli
 from torchvision.datasets import Cityscapes
 from torchvision.transforms import transforms
 
-from data_loader.data2d.segmentation_transform import Transformer
-from framework.nn.modules.gan.GANModel import ConditionalGANModel
-from framework.nn.modules.gan.image2image.gan_factory import MaskToImageFactory
-from framework.optim.min_max import MinMaxOptimizer, MinMaxLoss
-from framework.nn.modules.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
-from framework.nn.modules.gan.penalties.l2_penalty import L2Penalty
-from framework.nn.modules.gan.vgg.gan_loss import VggGeneratorLoss
-from framework.nn.modules.gan.wgan.WassersteinLoss import WassersteinLoss
 from framework.nn.ops.segmentation.Mask import MaskFactory
 from framework.parallel import ParallelConfig
-from framework.segmentation.split_and_fill import SplitAndFill
 from framework.segmentation.unet import UNetSegmentation
 from viz.visualization import show_images, show_segmentation
 
@@ -101,7 +92,7 @@ for epoch in range(num_epochs):
         L = (segm * sample + (1 - segm) * (1 - sample)).log().sum() / segm.numel()
 
         print(L.item())
-        loss = nn.BCELoss()(segm, mask.data) - L
+        loss = nn.BCELoss()(segm, mask.tensor) - L
         # loss = cross_entropy2d(segm, labels)
 
         opt.zero_grad()

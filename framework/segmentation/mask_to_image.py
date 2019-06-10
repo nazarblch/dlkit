@@ -4,14 +4,14 @@ from typing import List
 from torch import nn, Tensor
 
 from framework.Loss import Loss
-from framework.nn.modules.gan.GANModel import ConditionalGANModel
-from framework.nn.modules.gan.image2image.discriminator import Discriminator
-from framework.nn.modules.gan.image2image.unet_generator import UNetGenerator
-from framework.nn.modules.gan.noise.normal import NormalNoise
-from framework.nn.modules.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
-from framework.nn.modules.gan.penalties.l2_penalty import L2Penalty
-from framework.nn.modules.gan.vgg.gan_loss import VggGeneratorLoss
-from framework.nn.modules.gan.wgan.WassersteinLoss import WassersteinLoss
+from framework.gan.GANModel import ConditionalGANModel
+from framework.gan.image2image.discriminator import Discriminator
+from framework.gan.image2image.unet_generator import UNetGenerator
+from framework.gan.noise.normal import NormalNoise
+from framework.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
+from framework.gan.penalties.l2_penalty import L2Penalty
+from framework.gan.vgg.gan_loss import VggGeneratorLoss
+from framework.gan.wgan.WassersteinLoss import WassersteinLoss
 from framework.nn.ops.segmentation.Mask import Mask
 from framework.optim.min_max import MinMaxOptimizer, MinMaxLoss
 from framework.parallel import ParallelConfig
@@ -24,8 +24,8 @@ class MaskToImage:
                  labels_list: List[int],
                  image_channels_count: int = 3,
                  noise=NormalNoise(100, ParallelConfig.MAIN_DEVICE),
-                 generator_size: int = 64,
-                 discriminator_size: int = 64):
+                 generator_size: int = 32,
+                 discriminator_size: int = 32):
 
         mask_channels = len(labels_list)
 
@@ -46,22 +46,22 @@ class MaskToImage:
             netD,
             WassersteinLoss(2)
                 .add_penalty(AdaptiveLipschitzPenalty(0.1, 0.01))
-                .add_penalty(L2Penalty(1))  # + VggGeneratorLoss(0.5)
+                .add_penalty(L2Penalty(0.1)) + VggGeneratorLoss(15, 1)
         )
 
         # vgg_loss_fn = VggGeneratorLoss(ParallelConfig.MAIN_DEVICE)
 
-        lrG = 0.0001
-        lrD = 0.0001
+        lrG = 0.0002
+        lrD = 0.0002
         self.optimizer = MinMaxOptimizer(self.gan_model.parameters(), lrG, lrD)
 
     def train(self, images: Tensor, masks: Mask):
 
-        loss: MinMaxLoss = self.gan_model.loss_pair(images, masks.data)
+        loss: MinMaxLoss = self.gan_model.loss_pair(images, masks.tensor)
         self.optimizer.train_step(loss)
 
     def generator_loss(self, images: Tensor, masks: Mask) -> Loss:
 
-        fake = self.gan_model.generator.forward(masks.data)
-        return self.gan_model.generator_loss(images, fake, masks.data)
+        fake = self.gan_model.generator.forward(masks.tensor)
+        return self.gan_model.generator_loss(images, fake, masks.tensor)
 
