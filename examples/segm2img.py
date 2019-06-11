@@ -11,7 +11,7 @@ from framework.optim.min_max import MinMaxOptimizer, MinMaxLoss
 from framework.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
 from framework.gan import L2Penalty
 from framework.gan.wgan.WassersteinLoss import WassersteinLoss
-from framework.nn.ops.segmentation.Mask import MaskFactory
+from framework.segmentation.Mask import MaskFactory
 from framework.parallel import ParallelConfig
 from viz.visualization import show_images
 

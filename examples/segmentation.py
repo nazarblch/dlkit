@@ -7,7 +7,7 @@ from torch.distributions import Bernoulli
 from torchvision.datasets import Cityscapes
 from torchvision.transforms import transforms
 
-from framework.nn.ops.segmentation.Mask import MaskFactory
+from framework.segmentation.Mask import MaskFactory
 from framework.parallel import ParallelConfig
 from framework.segmentation.unet import UNetSegmentation
 from viz.visualization import show_images, show_segmentation

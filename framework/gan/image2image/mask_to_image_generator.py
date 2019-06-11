@@ -1,12 +1,9 @@
 from functools import reduce
-from typing import List
 
-import torch
 from torch import nn, Tensor
 
 from framework.gan.image2image.unet_generator import UNetGenerator
-from framework.gan.noise import Noise
-from framework.nn.ops.segmentation.Mask import Mask
+from framework.segmentation.Mask import Mask
 
 
 class MaskToImageGenerator(nn.Module):

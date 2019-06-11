@@ -9,12 +9,10 @@ from torchvision.transforms import transforms
 
 from data_loader.data2d.segmentation_transform import Transformer
 from framework.Loss import Loss
-from framework.nn.ops.segmentation.Mask import MaskFactory, Mask
+from framework.segmentation.Mask import MaskFactory, Mask
 from framework.parallel import ParallelConfig
 from framework.segmentation.loss.neighbour_diff import NeighbourDiffLoss
 from framework.segmentation.mask_to_image import MaskToImage
-from framework.segmentation.segment_to_image import MaskToImageComposite
-from framework.segmentation.split_and_fill import SplitAndFill
 from framework.segmentation.unet import UNetSegmentation
 from viz.visualization import show_images, show_segmentation
 

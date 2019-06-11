@@ -16,7 +16,7 @@ from framework.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPe
 from framework.gan.penalties.l2_penalty import L2Penalty
 from framework.gan.vgg.gan_loss import VggGeneratorLoss
 from framework.gan.wgan.WassersteinLoss import WassersteinLoss
-from framework.nn.ops.segmentation.Mask import Mask
+from framework.segmentation.Mask import Mask
 from framework.optim.min_max import MinMaxOptimizer, MinMaxLoss
 from framework.parallel import ParallelConfig
 from framework.segmentation.split_and_fill import weights_init
