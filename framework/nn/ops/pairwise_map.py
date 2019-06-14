@@ -6,9 +6,9 @@ import math
 
 class LocalPairwiseMap2D:
 
-    def __init__(self, kernel_size: int, stride: Optional[int] = None):
+    def __init__(self, kernel_size: int, stride: int = 1):
         self.kernel_size = kernel_size
-        self.stride = int(kernel_size // 2) + 1 if stride is None else stride
+        self.stride = stride
 
     """
     f: di, dj, T_center, Tij => T[n * n_block, nc*, 1]
@@ -19,11 +19,11 @@ class LocalPairwiseMap2D:
 
         fold: Tensor = nn.functional.unfold(tensor, self.kernel_size, stride=self.stride)
         n_block = fold.shape[-1]
-        fold = fold.transpose(1, 2).view(n * n_block, nc, self.kernel_size, self.kernel_size)
+        fold = fold.transpose(1, 2).reshape(n, n_block, nc, self.kernel_size, self.kernel_size)
 
         i_center = int(self.kernel_size // 2)
         j_center = int(self.kernel_size // 2)
-        t_center = fold[:, :, i_center, j_center]
+        t_center = fold[:, :, :, i_center, j_center]
 
         res: List[Tensor] = []
 
@@ -32,12 +32,12 @@ class LocalPairwiseMap2D:
                 if i == i_center and j == j_center:
                     continue
 
-                t_ij = fold[:, :, i, j]
+                t_ij = fold[:, :, :, i, j]
                 di = int(math.fabs(i - i_center))
                 dj = int(math.fabs(j - j_center))
                 res.append(
-                    f(di, dj, t_center, t_ij).view(n * n_block, -1, 1)
+                    f(di, dj, t_center, t_ij).view(n, n_block, -1, 1)
                 )
 
-        return torch.cat(res, dim=2)
+        return torch.cat(res, dim=3)
 

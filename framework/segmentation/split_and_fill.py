@@ -58,6 +58,54 @@ class FillGenerator(UNetGenerator):
         return fake * (1 - segment) + segment * condition
 
 
+class FillImageModel:
+
+    def __init__(self,
+                 image_size: int,
+                 generator_size: int = 32,
+                 discriminator_size: int = 32,
+                 channels_count: int = 3):
+        self.noise = NormalNoise(100, ParallelConfig.MAIN_DEVICE)
+
+        self.G = FillGenerator(self.noise, image_size, channels_count, channels_count, generator_size) \
+            .to(ParallelConfig.MAIN_DEVICE)
+        self.D = Discriminator(discriminator_size, 2 * channels_count, image_size) \
+            .to(ParallelConfig.MAIN_DEVICE)
+
+        self.G.apply(weights_init)
+        self.D.apply(weights_init)
+
+        if ParallelConfig.GPU_IDS.__len__() > 1:
+            self.G = nn.DataParallel(self.G, ParallelConfig.GPU_IDS)
+            self.D = nn.DataParallel(self.D, ParallelConfig.GPU_IDS)
+
+        was_loss = WassersteinLoss(2) \
+            .add_penalty(AdaptiveLipschitzPenalty(0.1, 0.01)) \
+            .add_penalty(L2Penalty(0.1))
+
+        self.gan_model = ConditionalGANModel(self.G, self.D, was_loss)
+
+        lr = 0.0002
+        self.optimizer = MinMaxOptimizer(self.gan_model.parameters(), lr, lr)
+
+    def train(self, images: Tensor, segments: Mask):
+
+        front: Tensor = images * segments.tensor
+        loss: MinMaxLoss = self.gan_model.loss_pair(images, front, segments.tensor)
+        self.optimizer.train_step(loss)
+
+    def test(self, images: Tensor, segments: Mask) -> Tensor:
+        front: Tensor = images * segments.tensor
+        return self.G(front, segments.tensor)
+
+    def generator_loss(self, images: Tensor, segments: Mask) -> Loss:
+        front: Tensor = images * segments.tensor
+        fake = self.G(front, segments.tensor)
+        loss = self.gan_model.generator_loss(images, fake, front)
+
+        return loss
+
+
 class SplitAndFill:
 
     def __init__(self,
@@ -66,65 +114,21 @@ class SplitAndFill:
                  discriminator_size: int = 32,
                  channels_count: int = 3):
 
-        self.noise = NormalNoise(100, ParallelConfig.MAIN_DEVICE)
-
-        self.bkG = FillGenerator(self.noise, image_size, channels_count, channels_count, generator_size)\
-            .to(ParallelConfig.MAIN_DEVICE)
-        self.frontG = FillGenerator(self.noise, image_size, channels_count, channels_count, generator_size)\
-            .to(ParallelConfig.MAIN_DEVICE)
-        self.D = Discriminator(discriminator_size, 2 * channels_count, image_size)\
-            .to(ParallelConfig.MAIN_DEVICE)
-
-        self.bkG.apply(weights_init)
-        self.frontG.apply(weights_init)
-        self.D.apply(weights_init)
-
-        if ParallelConfig.GPU_IDS.__len__() > 1:
-            self.bkG = nn.DataParallel(self.bkG, ParallelConfig.GPU_IDS)
-            self.frontG = nn.DataParallel(self.frontG, ParallelConfig.GPU_IDS)
-            self.D = nn.DataParallel(self.D, ParallelConfig.GPU_IDS)
-
-        was_loss = WassersteinLoss(2)\
-            .add_penalty(AdaptiveLipschitzPenalty(0.1, 0.01))\
-            .add_penalty(L2Penalty(0.1))
-
-        self.front_gan_model = ConditionalGANModel(self.frontG, self.D, was_loss)
-        self.bk_gan_model = ConditionalGANModel(self.bkG, self.D, was_loss)
-
-        lr = 0.0002
-        self.optimizer_front = MinMaxOptimizer(self.front_gan_model.parameters(), lr, lr)
-        self.optimizer_bk = MinMaxOptimizer(self.bk_gan_model.parameters(), lr, lr)
-
-        # self.vgg_dot = VggDotLoss(20, 0.5)
+        self.front_model = FillImageModel(image_size, generator_size, discriminator_size, channels_count)
+        self.bk_model = FillImageModel(image_size, generator_size, discriminator_size, channels_count)
 
     def train(self, images: Tensor, segments: Mask):
 
-        front: Tensor = images * segments.tensor
-        loss_front: MinMaxLoss = self.front_gan_model.loss_pair(images, front, segments.tensor)
-        self.optimizer_front.train_step(loss_front)
-
-        bk: Tensor = images * (1 - segments.tensor)
-        loss_bk: MinMaxLoss = self.bk_gan_model.loss_pair(images, bk, 1 - segments.tensor)
-        self.optimizer_bk.train_step(loss_bk)
+        self.front_model.train(images, segments)
+        self.bk_model.train(images, Mask(1 - segments.tensor))
 
     def test(self, images: Tensor, segments: Mask) -> Tuple[Tensor, Tensor]:
 
-        front: Tensor = images * segments.tensor
-        bk: Tensor = images * (1 - segments.tensor)
-
-        return self.frontG(front, segments.tensor), self.bkG(bk, 1 - segments.tensor)
+        return self.front_model.test(images, segments), \
+               self.bk_model.test(images, Mask(1 - segments.tensor))
 
     def generator_loss(self, images: Tensor, segments: Mask) -> Loss:
 
-        front: Tensor = images * segments.tensor
-        front_fake = self.frontG(front, segments.tensor)
-        loss_front = self.front_gan_model.generator_loss(images, front_fake, front)
-
-        bk: Tensor = images * (1 - segments.tensor)
-        bk_fake = self.bkG(bk, 1 - segments.tensor)
-        loss_bk = self.bk_gan_model.generator_loss(images, bk_fake, bk)
-
-        # dot_loss = self.vgg_dot(images * segments.tensor, images * (1 - segments.tensor))
-
-        return loss_bk + loss_front  # + dot_loss
+        return self.front_model.generator_loss(images, segments) + \
+            self.bk_model.generator_loss(images, Mask(1 - segments.tensor))
 

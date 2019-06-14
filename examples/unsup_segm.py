@@ -9,17 +9,22 @@ from torchvision.transforms import transforms
 
 from data_loader.data2d.segmentation_transform import Transformer
 from framework.Loss import Loss
+from framework.gan.cycle.model import CycleGAN
+from framework.gan.vgg.gan_loss import VggGeneratorLoss
 from framework.segmentation.Mask import MaskFactory, Mask
 from framework.parallel import ParallelConfig
+from framework.segmentation.loss.entropy import SegmentationEntropy
+from framework.segmentation.loss.modularity import MultiLayerModularity
 from framework.segmentation.loss.neighbour_diff import NeighbourDiffLoss
 from framework.segmentation.mask_to_image import MaskToImage
+from framework.segmentation.split_and_fill import SplitAndFill
 from framework.segmentation.unet import UNetSegmentation
 from viz.visualization import show_images, show_segmentation
 
 # Number of workers for dataloader
 workers = 20
 # Batch size during training
-batch_size = 64
+batch_size = 48
 # Spatial size of training images. All images will be resized to this
 #   size using a transformer.
 image_size = 128
@@ -57,7 +62,7 @@ dataloader = torch.utils.data.DataLoader(dataset,
                                          num_workers=workers)
 
 
-labels_list: List[int] = [1, 2, 3, 4, 5]
+labels_list: List[int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 segm_net = nn.DataParallel(
     UNetSegmentation(labels_list.__len__()).to(ParallelConfig.MAIN_DEVICE),
@@ -69,7 +74,19 @@ opt = torch.optim.Adam(segm_net.parameters(), lr=0.0002, betas=(0.5, 0.999))
 
 gan = MaskToImage(image_size, labels_list)
 
-# split_gan = SplitAndFill(image_size)
+split_gan = SplitAndFill(image_size)
+
+cycle = CycleGAN[Tensor, Tensor](
+    segm_net,
+    gan.gan_model.generator,
+    loss_1=VggGeneratorLoss(15, 1).forward,
+    loss_2=lambda s1, s2:  (
+        Loss(nn.BCELoss()(s1, s2.detach())) +
+        NeighbourDiffLoss(3)(Mask(s1)) * 2 +
+        SegmentationEntropy()(s1) * 2
+    ),
+    lr=0.0001/2
+)
 
 
 def cat_sample(segm: Tensor) -> Tuple[Tensor, Mask]:
@@ -94,7 +111,7 @@ def be_sample(segm: Tensor) -> Tuple[Tensor, Mask]:
 def train_gan(imgs: Tensor):
 
     segm: Tensor = segm_net(imgs)
-    L, mask = be_sample(segm)
+    L, mask = cat_sample(segm)
 
     gan.train(imgs, mask)
 
@@ -102,7 +119,7 @@ def train_gan(imgs: Tensor):
 def train_split_gan(imgs: Tensor):
 
     segm: Tensor = segm_net(imgs)
-    L, mask = be_sample(segm)
+    L, mask = cat_sample(segm)
 
     segment = Transformer.get_random_segment(mask)
     split_gan.train(imgs, segment)
@@ -111,37 +128,43 @@ def train_split_gan(imgs: Tensor):
 def train_segm(imgs: Tensor):
 
     segm: Tensor = segm_net(imgs)
-    L, mask = be_sample(segm)
 
-    loss = gan.generator_loss(imgs, Mask(segm)) + NeighbourDiffLoss.__call__(segm) * 5 - Loss(L)/2
+    mod = MultiLayerModularity(5)(imgs, segm)
+    nb_diff = NeighbourDiffLoss(3)(Mask(segm)) * 2
+    entropy = SegmentationEntropy()(segm)
+
+    loss = (
+        gan.generator_loss(imgs, Mask(segm))
+        + nb_diff
+        - mod * 5
+        + entropy
+    )
+
+    print("===============================")
+    print("segm loss:" + str(loss.item()))
+    print("modularity:" + str(mod.item()))
+    print("nb diff:" + str(nb_diff.item()))
+    print("entropy:" + str(entropy.item()))
 
     opt.zero_grad()
     loss.minimize()
     opt.step()
 
-    print("segm loss:" + str(loss.item()))
+    segm: Tensor = segm_net(imgs)
+    L, mask = cat_sample(segm)
+    cycle.train(imgs, mask.tensor)
 
     segm: Tensor = segm_net(imgs)
-    fake = gan.gan_model.generator.forward(segm)
-    fake_segm = segm_net(fake)
-    cycle_loss = Loss(
-        nn.BCELoss()(fake_segm, segm.detach())
-        + nn.BCELoss()(segm, fake_segm.detach())
+    segment = Transformer.get_random_segment(Mask(segm))
+    split_loss = (
+        split_gan.generator_loss(imgs, segment) +
+        NeighbourDiffLoss(3)(Mask(segm)) * 2 +
+        SegmentationEntropy()(segm)
     )
 
     opt.zero_grad()
-    (cycle_loss / 5).minimize()
+    split_loss.minimize()
     opt.step()
-    # gan.optimizer.opt_min.step()
-
-    # segm: Tensor = segm_net(imgs)
-    # L, mask = be_sample(segm)
-    # segment = Transformer.get_random_segment(mask)
-    # split_loss = (split_gan.generator_loss(imgs, segment) + NeighbourDiffLoss.__call__(mask.tensor) * 10) * L
-    #
-    # opt.zero_grad()
-    # (split_loss / 3).minimize()
-    # opt.step()
 
 
 def train_sup_segm(imgs: Tensor, mask: Mask):
@@ -184,7 +207,7 @@ for epoch in range(num_epochs):
         imgs = imgs.to(ParallelConfig.MAIN_DEVICE)
 
         train_gan(imgs)
-        # train_split_gan(imgs)
+        train_split_gan(imgs)
         train_segm(imgs)
 
         if i % 20 == 0:

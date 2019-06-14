@@ -46,7 +46,7 @@ class MaskToImage:
             netD,
             WassersteinLoss(2)
                 .add_penalty(AdaptiveLipschitzPenalty(0.1, 0.01))
-                .add_penalty(L2Penalty(0.1)) + VggGeneratorLoss(15, 1)
+                .add_penalty(L2Penalty(0.1))  # + VggGeneratorLoss(15, 1)
         )
 
         # vgg_loss_fn = VggGeneratorLoss(ParallelConfig.MAIN_DEVICE)

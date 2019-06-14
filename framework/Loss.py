@@ -12,6 +12,7 @@ class Loss:
 
     def __init__(self, tensor: Union[Tensor, float]):
         self.__tensor = tensor
+        assert isinstance(tensor, int) or isinstance(tensor, float) or tensor.numel() == 1
 
     def __add__(self, other):
         return Loss(self.__tensor + other.to_tensor())

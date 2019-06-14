@@ -1,25 +1,25 @@
+import math
+
 import torch
 from torch import Tensor, nn
 
 from framework.Loss import Loss
+from framework.nn.ops.pairwise_map import LocalPairwiseMap2D
 from framework.parallel import ParallelConfig
+from framework.segmentation.Mask import Mask
 
 
 class NeighbourDiffLoss:
 
-    neighbour_filter: Tensor = torch.zeros(4, 1, 3, 3, dtype=torch.float32).to(ParallelConfig.MAIN_DEVICE)
-    neighbour_filter[:, 0, 1, 1] = 1
-    neighbour_filter[0, 0, 0, 1] = -1
-    neighbour_filter[1, 0, 1, 0] = -1
-    neighbour_filter[2, 0, 1, 2] = -1
-    neighbour_filter[3, 0, 2, 1] = -1
+    def __init__(self, kernel_size: int):
 
-    @staticmethod
-    def __call__(segm: Tensor) -> Loss:
+        self.kernel_size = kernel_size
+        self.mapper = LocalPairwiseMap2D(5)
 
-        res = 0
+    def diff(self, di, dj, p1, p2):
+        r = math.sqrt(di**2 + dj**2)
+        return (p1 - p2).abs().sum(dim=2, keepdim=True) * math.exp(- r / 2)
 
-        for segm_i in segm.split(1, dim=1):
-            res += nn.functional.conv2d(segm_i, NeighbourDiffLoss.neighbour_filter).abs().mean()
+    def __call__(self, segm: Mask) -> Loss:
 
-        return Loss(res / segm.shape[1])
+        return Loss(self.mapper(segm.tensor, self.diff).mean())
