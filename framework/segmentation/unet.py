@@ -126,7 +126,7 @@ class UNetSegmentation(UNet):
             in_block=double_conv(3, nc_base),
             out_block=nn.Sequential(
                 nn.Conv2d(2 * nc_base, n_classes, 1),
-                nn.Softmax(dim=1)
+                nn.Sigmoid()
             ),
             middle_block=double_conv(nc_middle, nc_middle),
             down_block=down_block_factory,

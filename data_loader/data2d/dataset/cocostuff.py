@@ -16,16 +16,23 @@ import scipy.io as sio
 import torch
 from PIL import Image
 from torch.utils import data
+from torchvision.datasets import VisionDataset
 
 from .base import _BaseDataset
 
 
-class CocoStuff10k(_BaseDataset):
+class CocoStuff10k(VisionDataset):
     """COCO-Stuff 10k dataset"""
 
-    def __init__(self, warp_image=True, **kwargs):
-        self.warp_image = warp_image
-        super(CocoStuff10k, self).__init__(**kwargs)
+    def __len__(self):
+        return len(self.files)
+
+    def __init__(self, root, split="train", transform=None, target_transform=None, transforms=None):
+        super(CocoStuff10k, self).__init__(root, transforms, transform, target_transform)
+        self.root = root
+        self.split = split
+        self.files = []
+        self._set_files()
 
     def _set_files(self):
         # Create data list via {train, test, all}.txt
@@ -37,22 +44,21 @@ class CocoStuff10k(_BaseDataset):
         else:
             raise ValueError("Invalid split name: {}".format(self.split))
 
-    def _load_data(self, index):
+    def __getitem__(self, index):
         # Set paths
         image_id = self.files[index]
         image_path = osp.join(self.root, "images", image_id + ".jpg")
         label_path = osp.join(self.root, "annotations", image_id + ".mat")
         # Load an image and label
-        image = cv2.imread(image_path, cv2.IMREAD_COLOR).astype(np.float32)
+        image = Image.open(image_path).convert("RGB")
         label = sio.loadmat(label_path)["S"]
         label -= 1  # unlabeled (0 -> -1)
         label[label == -1] = 255
-        # Warping: this is just for reproducing the official scores on GitHub
-        if self.warp_image:
-            image = cv2.resize(image, (513, 513), interpolation=cv2.INTER_LINEAR)
-            label = Image.fromarray(label).resize((513, 513), resample=Image.NEAREST)
-            label = np.asarray(label)
-        return image_id, image, label
+
+        if self.transforms is not None:
+            image = self.transform(image)
+
+        return image
 
 
 class CocoStuff164k(_BaseDataset):
