@@ -16,7 +16,7 @@ def superpixels(img: np.ndarray) -> np.ndarray:
         expand = True
 
     mat = mbspy.Mat.from_array(img)
-    sp = mbspy.superpixels(mat, 50, 0.001)
+    sp = mbspy.superpixels(mat, img.shape[0], 0.01)
     sp_nd = np.asarray(sp)
     if np.min(sp_nd) < 0:
        sp_nd += 1
