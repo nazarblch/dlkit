@@ -1,7 +1,9 @@
+from abc import ABC, abstractmethod
 from typing import Optional, Union, overload
 
 import torch
 from torch import Tensor
+from torch.optim.optimizer import Optimizer
 
 
 class Loss:
@@ -29,12 +31,30 @@ class Loss:
     def minimize(self) -> None:
         return self.__tensor.backward()
 
+    def minimize_step(self, optimizer: Optimizer) -> None:
+        optimizer.zero_grad()
+        self.__tensor.backward()
+        optimizer.step()
+
     def maximize(self) -> None:
         return self.__tensor.backward(-torch.ones_like(self.__tensor))
+
+    def maximize_step(self, optimizer: Optimizer) -> None:
+        optimizer.zero_grad()
+        self.maximize()
+        optimizer.step()
 
     def item(self) -> float:
         return self.__tensor.item()
 
     def to_tensor(self) -> Tensor:
         return self.__tensor
+
+
+class LossModule(ABC):
+
+    @abstractmethod
+    def forward(self, *tensor: Tensor) -> Loss: pass
+
+
 
