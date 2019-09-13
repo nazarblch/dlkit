@@ -5,14 +5,13 @@ import torch
 from torch import Tensor
 import matplotlib.pyplot as plt
 
-from framework.nn.modules.gan.GANModel import GANModel
-from framework.nn.modules.gan.dcgan.DCGANModel import DCGANLoss
-from framework.nn.modules.gan.euclidean.Discriminator import Discriminator
-from framework.nn.modules.gan.euclidean.Generator import Generator
-from framework.nn.modules.gan.noise.normal import NormalNoise
-from framework.nn.modules.gan.optimize import GANOptimizer
-from framework.nn.modules.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
-from framework.nn.modules.gan.wgan.WassersteinLoss import WassersteinLoss
+from framework.gan.GANModel import GANModel
+from framework.gan.euclidean import Discriminator
+from framework.gan.euclidean import Generator
+from framework.gan.noise.normal import NormalNoise
+from framework.optim.min_max import MinMaxOptimizer
+from framework.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
+from framework.gan.wgan.WassersteinLoss import WassersteinLoss
 
 batch_size = 256
 noise_size = 2
@@ -28,16 +27,16 @@ netD = Discriminator().to(device)
 print(netD)
 
 
-lr = 0.001
+lr = 0.003
 betas = (0.5, 0.9)
 
 gan_model = GANModel(
     netG,
     netD,
-    WassersteinLoss(1)
+    WassersteinLoss(10).add_penalty(AdaptiveLipschitzPenalty(1, 0.05))
 )
 
-optimizer = GANOptimizer(gan_model.generator.parameters(), gan_model.discriminator.parameters(), lr, betas)
+optimizer = MinMaxOptimizer(gan_model.parameters(), lr, 2 * lr, betas)
 
 n = 5000
 
@@ -61,14 +60,12 @@ for iter in range(0, 3000):
 
     data = gen_batch().to(device)
 
-    fake = netG.forward(batch_size)
-    errD = gan_model.discriminator_loss(data, fake)
-    errG = gan_model.generator_loss(fake)
-    optimizer.train_step(errG, errD)
+    loss = gan_model.loss_pair(data)
+    optimizer.train_step(loss)
 
     if iter % 100 == 0:
         # print(gan_model.loss.get_penalties()[1].weight)
-        print(str(errD.item()) + ", g = " + str(errG.item()))
+        print(str(loss.discriminator_loss.item()) + ", g = " + str(loss.generator_loss.item()))
 
 
 fake = netG.forward(3 * batch_size)

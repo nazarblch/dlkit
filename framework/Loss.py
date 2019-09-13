@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union, overload
 
 import torch
 from torch import Tensor
@@ -6,8 +6,13 @@ from torch import Tensor
 
 class Loss:
 
-    def __init__(self, tensor: Tensor):
+    @staticmethod
+    def ZERO():
+        return Loss(0)
+
+    def __init__(self, tensor: Union[Tensor, float]):
         self.__tensor = tensor
+        assert isinstance(tensor, int) or isinstance(tensor, float) or tensor.numel() == 1
 
     def __add__(self, other):
         return Loss(self.__tensor + other.to_tensor())
@@ -15,7 +20,7 @@ class Loss:
     def __sub__(self, other):
         return Loss(self.__tensor - other.to_tensor())
 
-    def __mul__(self, weight: float):
+    def __mul__(self, weight: Union[float,  Tensor]):
         return Loss(self.__tensor * weight)
 
     def __truediv__(self, weight: float):
@@ -32,3 +37,4 @@ class Loss:
 
     def to_tensor(self) -> Tensor:
         return self.__tensor
+

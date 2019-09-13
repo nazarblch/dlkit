@@ -2,8 +2,9 @@ from setuptools import setup, find_packages
 
 
 setup(
-    name='dlkit',
+    name='framework',
     description='PyTorch oriented deep learning toolkit',
     author='Philips Innovation Labs',
-    packages=find_packages(),
+    packages=[],
+    install_requires=['torch']
 )

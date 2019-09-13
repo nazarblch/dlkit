@@ -1,14 +1,14 @@
 import torch
 from torch import optim
 
-from framework.nn.modules.gan.GANModel import GANModel
-from framework.nn.modules.gan.euclidean.Discriminator import Discriminator
-from framework.nn.modules.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
-from framework.nn.modules.gan.wgan.WassersteinLoss import WassersteinLoss
+from framework.gan.GANModel import GANModel
+from framework.gan.euclidean import Discriminator
+from framework.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
+from framework.gan.wgan.WassersteinLoss import WassersteinLoss
 
 n = 1000
 xs = (torch.arange(0, n, dtype=torch.float32) / 100.0).view(n, 1)
-device = torch.device("cuda:0")
+device = torch.device("cpu")
 
 ys1: torch.Tensor = torch.cat((xs.cos(), xs.sin()), dim=1).to(device)
 ys2: torch.Tensor = torch.cat((xs.cos(), xs.sin()), dim=1).to(device) * 5
@@ -18,7 +18,7 @@ print(netD)
 
 gan_model = GANModel(None,
                      netD,
-                     WassersteinLoss(1).add_penalty(AdaptiveLipschitzPenalty(1, 0.05))
+                     WassersteinLoss(0.5).add_penalty(AdaptiveLipschitzPenalty(1, 0.05))
                      )
 
 opt = optim.Adam(netD.parameters(), 0.003, betas=(0.5, 0.9))
