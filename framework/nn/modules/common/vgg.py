@@ -3,9 +3,9 @@ from torch import nn
 from torch import Tensor
 
 
-class Vgg16(nn.Module):
+class Vgg19(nn.Module):
     def __init__(self, depth: int, requires_grad=False):
-        super(Vgg16, self).__init__()
+        super(Vgg19, self).__init__()
         vgg_pretrained_features = models.vgg16(pretrained=True).features
         self.slice = nn.Sequential()
         for x in range(0, depth):

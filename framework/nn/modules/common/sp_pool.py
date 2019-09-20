@@ -14,13 +14,6 @@ class SPPoolMean(nn.Module):
 
     def forward(self, src: Tensor, labels: Tensor):
 
-        if src.shape != labels.shape:
-            cn = src.shape[-3]
-            labels = torch.cat(
-                [labels.unsqueeze(-3)] * cn,
-                dim=-3
-            )
-
         pooled = self._pool(src, labels)
         norm = self._pool(torch.ones_like(src), labels)
         pooled /= norm

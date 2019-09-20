@@ -13,41 +13,24 @@ from skimage import segmentation
 import torch.nn.init
 from torch import Tensor
 
+from data_loader.data2d.dataset.superpixels import Superpixels
 from framework.nn.modules.common.sp_pool import SPPoolMean
+from framework.nn.modules.resnet.residual import ResidualNet
+from framework.segmentation.base import PenalizedSegmentation
+from framework.segmentation.fcn import FCNSegmentation
+from framework.segmentation.loss.modularity import VGGModularity
 from framework.segmentation.loss.sp_loss import SuperPixelsLoss
+from framework.segmentation.resnet import ResidualSegmentation
+from framework.segmentation.unet import UNetSegmentation
 from superpixels import mbs
-
+from superpixels.mbs import superpixels
+import albumentations
 
 use_cuda = torch.cuda.is_available()
 
 print(use_cuda)
 
-# CNN model
-class MyNet(nn.Module):
-    def __init__(self, input_dim, nChannel, nConv):
-        super(MyNet, self).__init__()
-        self.nConv = nConv
-        self.conv1 = nn.Conv2d(input_dim, nChannel, kernel_size=3, stride=1, padding=1 )
-        self.bn1 = nn.BatchNorm2d(nChannel)
-        self.conv2 = nn.ModuleList()
-        self.bn2 = nn.ModuleList()
-        for i in range(nConv-1):
-            self.conv2.append(nn.Conv2d(nChannel, nChannel, kernel_size=3, stride=1, padding=1 ) )
-            self.bn2.append(nn.BatchNorm2d(nChannel) )
-        self.conv3 = nn.Conv2d(nChannel, nChannel, kernel_size=1, stride=1, padding=0 )
-        self.bn3 = nn.BatchNorm2d(nChannel)
 
-    def forward(self, x):
-        x = self.conv1(x)
-        x = torch.relu(x)
-        x = self.bn1(x)
-        for i in range(self.nConv-1):
-            x = self.conv2[i](x)
-            x = torch.relu(x)
-            x = self.bn2[i](x)
-        x = self.conv3(x)
-        x = self.bn3(x)
-        return x
 
 parser = argparse.ArgumentParser(description='PyTorch Unsupervised Segmentation')
 parser.add_argument('--nChannel', metavar='N', default=100, type=int,
@@ -70,76 +53,56 @@ parser.add_argument('--input', metavar='FILENAME',
                     help='input image file name', required=True)
 args = parser.parse_args()
 
-pooling = SPPoolMean()
+image_size = 256
 
 
-# load image
-im = cv2.imread(args.input)
-data = torch.from_numpy(np.array([
-    im.transpose((2, 0, 1)).astype('float32')/255.
-]))
+dataset = Superpixels(
+    root="/home/nazar/PycharmProjects/segmentation_data/leftImg8bit/train/strasbourg",
+    compute_sp=True,
+    transforms_al=albumentations.Compose([
+        albumentations.Resize(image_size, image_size),
+        albumentations.CenterCrop(image_size, image_size),
+    ]),
+    transform=transforms.Compose([
+        transforms.ToTensor()
+    ]),
+    target_transform=transforms.ToTensor()
+)
 
 
-# slic
-# labels = segmentation.slic(im, compactness=args.compactness, n_segments=args.num_superpixels)
-labels = mbs.superpixels(im)
-labels: np.ndarray = labels.reshape(im.shape[0]*im.shape[1])
-print(labels)
-sp = torch.tensor(labels, dtype=torch.int64).view((1, data.shape[-2], data.shape[-1])).cuda()
-
-u_labels = np.unique(labels)
-l_inds = []
-for i in range(len(u_labels)):
-    l_inds.append(np.where(labels == u_labels[i])[0])
-
-# train
-model = MyNet(data.size(1), args.nChannel, args.nConv)
-if use_cuda:
-    model.cuda()
-model.train()
-loss_fn = torch.nn.CrossEntropyLoss()
-optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
-label_colours = np.random.randint(255,size=(100, 3))
+segm_net = PenalizedSegmentation(
+    FCNSegmentation(100)
+)
+segm_net.add_penalty(SuperPixelsLoss(1.0))
+segm_net.add_penalty(VGGModularity(3, 0.01))
 
 
+label_colours = np.random.randint(255, size=(100, 3))
 
 
 for batch_idx in range(args.maxIter):
-    # forwarding
-    optimizer.zero_grad()
-    output = model(data.cuda())
 
-    sp_out = pooling.forward(output, sp)
+    im_0, sp_0 = dataset[batch_idx % 3]
 
-    ignore, target = torch.max(sp_out, 1)
-    im_target = target.data.cpu().numpy()
+    data = im_0.cuda().unsqueeze(0).type(torch.float32)
+    sp = sp_0.cuda().type(torch.int64).unsqueeze(0)
+
+    output = segm_net.forward(data, sp)
+
+    im_target = output.max(dim=1)[1].cpu().numpy()
     nLabels = len(np.unique(im_target))
 
-    if args.visualize:
-        im_target_rgb = np.array([label_colours[ c % 100 ] for c in im_target])
-        im_target_rgb = im_target_rgb.reshape( im.shape ).astype( np.uint8 )
-        cv2.imshow("output", im_target_rgb )
-        cv2.waitKey(10)
+    if args.visualize and batch_idx % 19 == 1:
+        im_target_rgb = np.array([label_colours[c%100] for c in im_target])
+        im_target_rgb = im_target_rgb.reshape((image_size, image_size, 3)).astype(np.uint8)
+        cv2.imshow("output", im_target_rgb)
+        cv2.waitKey(20)
 
     # superpixel refinement
-
-    loss = SuperPixelsLoss().forward(data, output)
-    loss.minimize()
-    optimizer.step()
+    loss = segm_net.train(data, sp)
 
     print (batch_idx, '/', args.maxIter, ':', nLabels, loss.item())
-    # for pytorch 1.0
-    # print (batch_idx, '/', args.maxIter, ':', nLabels, loss.item())
     if nLabels <= args.minLabels:
         print ("nLabels", nLabels, "reached minLabels", args.minLabels, ".")
         break
 
-# save output image
-if not args.visualize:
-    output = model( data )[ 0 ]
-    output = output.permute( 1, 2, 0 ).contiguous().view( -1, args.nChannel )
-    ignore, target = torch.max( output, 1 )
-    im_target = target.data.cpu().numpy()
-    im_target_rgb = np.array([label_colours[ c % 100 ] for c in im_target])
-    im_target_rgb = im_target_rgb.reshape( im.shape ).astype( np.uint8 )
-cv2.imwrite( "output.png", im_target_rgb )

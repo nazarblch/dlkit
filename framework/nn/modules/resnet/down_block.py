@@ -15,7 +15,7 @@ class DownBlock(nn.Module):
         self.input_nc = input_nc
         self.output_nc = output_nc
         self.n_down = n_down
-        max_nc = 1024
+        max_nc = min(1024, output_nc)
         activation = nn.ReLU(True)
 
         model_list = [

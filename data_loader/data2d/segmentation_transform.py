@@ -4,7 +4,7 @@ from typing import Tuple
 import torch
 from torch import Tensor
 
-from framework.nn.ops.segmentation.Mask import Mask
+from framework.segmentation.Mask import Mask
 
 
 class Transformer:

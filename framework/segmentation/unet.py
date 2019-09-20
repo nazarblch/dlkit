@@ -83,9 +83,9 @@ class outconv(nn.Module):
 
 
 class UNetSegmentation(UNet):
-    def __init__(self, n_classes: int, n_down: int = 5, nc_base: int = 64):
+    def __init__(self, n_classes: int, n_down: int = 5, nc_base: int = 32):
 
-        nc_max = 512
+        nc_max = 256
 
         nc_middle = min(int(nc_base * (2 ** n_down)), nc_max)
 
@@ -126,7 +126,8 @@ class UNetSegmentation(UNet):
             in_block=double_conv(3, nc_base),
             out_block=nn.Sequential(
                 nn.Conv2d(2 * nc_base, n_classes, 1),
-                nn.Sigmoid()
+                nn.BatchNorm2d(n_classes),
+                nn.ReLU()
             ),
             middle_block=double_conv(nc_middle, nc_middle),
             down_block=down_block_factory,

@@ -15,7 +15,7 @@ from data_loader.data2d.dataset import CocoStuff10k
 from framework.Loss import Loss
 from framework.parallel import ParallelConfig
 from framework.segmentation.Mask import Mask
-from framework.segmentation.loss.modularity import MultiLayerModularity, Modularity
+from framework.segmentation.loss.modularity import VGGModularity, Modularity
 from framework.segmentation.loss.neighbour_diff import NeighbourDiffLoss
 from framework.segmentation.unet import UNetSegmentation
 from viz.visualization import show_segmentation, show_images

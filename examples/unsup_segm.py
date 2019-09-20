@@ -16,7 +16,7 @@ from framework.segmentation.Mask import MaskFactory, Mask
 from framework.parallel import ParallelConfig
 from framework.segmentation.base import PenalizedSegmentation
 from framework.segmentation.loss.entropy import SegmentationEntropy
-from framework.segmentation.loss.modularity import MultiLayerModularity
+from framework.segmentation.loss.modularity import VGGModularity
 from framework.segmentation.loss.neighbour_diff import NeighbourDiffLoss
 from framework.segmentation.loss.sp_loss import SuperPixelsLoss
 from framework.segmentation.mask_to_image import MaskToImage

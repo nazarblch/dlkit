@@ -3,9 +3,9 @@ from torch import nn, Tensor
 import numpy as np
 
 from framework.nn.modules.resnet.down_block import DownBlock
-from framework.nn.modules.resnet import ResidualNet, PaddingType
+from framework.nn.modules.resnet.residual import ResidualNet, PaddingType
 from framework.nn.modules.resnet.up_block import UpBlock
-from framework.gan.ConditionalGenerator import ConditionalGenerator
+from framework.gan.conditional import ConditionalGenerator
 from framework.gan.noise import Noise
 
 
