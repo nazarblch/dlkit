@@ -18,7 +18,7 @@ class MSD(torch.utils.data.Dataset):
 
     def __init__(self, root, test=False, resolution=1, transform=None, ignore_labels=False, preserve_original=False,
                  store_index=False, store_sample=False):
-        """PyTorch dataset for Medical Segmentation Decathlon data_loader.
+        """PyTorch datasets for Medical Segmentation Decathlon data.
 
         Loads each sample into two NumPy arrays. Image is stored
         under the key `image` and segmentation mask is stored under
@@ -46,7 +46,7 @@ class MSD(torch.utils.data.Dataset):
         self.preserve_original = preserve_original
         self.store_index = store_index
         self.store_sample = store_sample
-        with open(os.path.join(root, 'dataset.json'), 'r') as f:
+        with open(os.path.join(root, 'datasets.json'), 'r') as f:
             self.meta = json.load(f)
         if test:
             self.samples = self.meta['test']
@@ -126,6 +126,6 @@ class MSD(torch.utils.data.Dataset):
 
     @staticmethod
     def get_classes(root):
-        with open(os.path.join(root, 'dataset.json'), 'r') as f:
+        with open(os.path.join(root, 'datasets.json'), 'r') as f:
             meta = json.load(f)
         return meta['labels']

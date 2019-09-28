@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 from data_loader.DataPath import DataPath
-from data_loader.data2d.dataset import CocoStuff10k
+from data_loader.data2d.datasets import CocoStuff10k
 from framework.Loss import Loss
 from framework.parallel import ParallelConfig
 from framework.segmentation.Mask import Mask

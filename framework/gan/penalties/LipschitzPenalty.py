@@ -22,5 +22,5 @@ class LipschitzPenalty(DiscriminatorPenalty):
                                         only_inputs=True)[0]
 
         gradients: Tensor = gradients.view(gradients.size(0), -1)
-        gradient_penalty_value = torch.relu(gradients.norm(2, dim=1) - 1).mean()
+        gradient_penalty_value = ((gradients.norm(2, dim=1) - 1)**2).mean()
         return Loss(self.weight * gradient_penalty_value)

@@ -21,7 +21,7 @@ class DataLoader(DL):
 
     @staticmethod
     def default_collate(batch):
-        r"""Puts each data_loader field into a tensor with outer dimension batch size"""
+        r"""Puts each data field into a tensor with outer dimension batch size"""
 
         error_msg = "batch must contain tensors, numbers, dicts or lists or None; found {}"
         elem_type = type(batch[0])

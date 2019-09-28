@@ -13,7 +13,7 @@ from skimage import segmentation
 import torch.nn.init
 from torch import Tensor
 
-from data_loader.data2d.dataset.superpixels import Superpixels
+from data.d2.datasets.superpixels import Superpixels
 from framework.nn.modules.common.sp_pool import SPPoolMean
 from framework.nn.modules.resnet.residual import ResidualNet
 from framework.segmentation.base import PenalizedSegmentation
@@ -57,8 +57,9 @@ image_size = 256
 
 
 dataset = Superpixels(
-    root="/home/nazar/PycharmProjects/segmentation_data/leftImg8bit/train/strasbourg",
-    compute_sp=True,
+    root="/home/nazar/Downloads/dogvscat/dataset/training_set/cats",
+    target_root="/home/nazar/Downloads/dogvscat/sp/dataset/training_set/cats",
+    compute_sp=False,
     transforms_al=albumentations.Compose([
         albumentations.Resize(image_size, image_size),
         albumentations.CenterCrop(image_size, image_size),
@@ -71,10 +72,11 @@ dataset = Superpixels(
 
 
 segm_net = PenalizedSegmentation(
-    FCNSegmentation(100)
+    # FCNSegmentation(100, n_conv=3)
+    UNetSegmentation(100)
 )
 segm_net.add_penalty(SuperPixelsLoss(1.0))
-segm_net.add_penalty(VGGModularity(3, 0.01))
+segm_net.add_penalty(VGGModularity(3, 1.0))
 
 
 label_colours = np.random.randint(255, size=(100, 3))
@@ -82,7 +84,7 @@ label_colours = np.random.randint(255, size=(100, 3))
 
 for batch_idx in range(args.maxIter):
 
-    im_0, sp_0 = dataset[batch_idx % 3]
+    im_0, sp_0 = dataset[10]
 
     data = im_0.cuda().unsqueeze(0).type(torch.float32)
     sp = sp_0.cuda().type(torch.int64).unsqueeze(0)
@@ -92,7 +94,7 @@ for batch_idx in range(args.maxIter):
     im_target = output.max(dim=1)[1].cpu().numpy()
     nLabels = len(np.unique(im_target))
 
-    if args.visualize and batch_idx % 19 == 1:
+    if args.visualize and batch_idx % 3 == 1:
         im_target_rgb = np.array([label_colours[c%100] for c in im_target])
         im_target_rgb = im_target_rgb.reshape((image_size, image_size, 3)).astype(np.uint8)
         cv2.imshow("output", im_target_rgb)
@@ -101,8 +103,6 @@ for batch_idx in range(args.maxIter):
     # superpixel refinement
     loss = segm_net.train(data, sp)
 
-    print (batch_idx, '/', args.maxIter, ':', nLabels, loss.item())
-    if nLabels <= args.minLabels:
-        print ("nLabels", nLabels, "reached minLabels", args.minLabels, ".")
-        break
+    print(batch_idx, '/', args.maxIter, ':', nLabels, loss.item())
+
 

@@ -19,8 +19,9 @@ class MaskFactory:
     @staticmethod
     def from_class_map(labels: LongTensor, labels_list: List[int]) -> Mask:
 
-        masks = [MaskFactory.get_segment_mask(labels, i).view(labels.size(0), 1, *(labels.size()[-2:]))
-                 for i in labels_list]
+        with torch.no_grad():
+            masks = [MaskFactory.get_segment_mask(labels, i).view(labels.size(0), 1, *(labels.size()[-2:]))
+                     for i in labels_list]
 
-        return Mask(torch.cat(masks, dim=1))
+            return Mask(torch.cat(masks, dim=1))
 

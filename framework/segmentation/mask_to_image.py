@@ -21,17 +21,15 @@ from framework.segmentation.split_and_fill import weights_init
 class MaskToImage:
     def __init__(self,
                  image_size: int,
-                 labels_list: List[int],
+                 mask_channels_count: int,
                  image_channels_count: int = 3,
-                 noise=NormalNoise(100, ParallelConfig.MAIN_DEVICE),
+                 noise=NormalNoise(50, ParallelConfig.MAIN_DEVICE),
                  generator_size: int = 32,
                  discriminator_size: int = 32):
 
-        mask_channels = len(labels_list)
-
-        netG = UNetGenerator(noise, image_size, mask_channels, image_channels_count, generator_size) \
+        netG = UNetGenerator(noise, image_size, mask_channels_count, image_channels_count, generator_size) \
             .to(ParallelConfig.MAIN_DEVICE)
-        netD = Discriminator(discriminator_size, image_channels_count + mask_channels, image_size) \
+        netD = Discriminator(discriminator_size, image_channels_count + mask_channels_count, image_size) \
             .to(ParallelConfig.MAIN_DEVICE)
 
         netG.apply(weights_init)
@@ -44,15 +42,13 @@ class MaskToImage:
         self.gan_model = ConditionalGANModel(
             netG,
             netD,
-            WassersteinLoss(2)
-                .add_penalty(AdaptiveLipschitzPenalty(0.1, 0.01))
-                .add_penalty(L2Penalty(0.1))  # + VggGeneratorLoss(15, 1)
+            WassersteinLoss(10.0)
+                # .add_penalty(AdaptiveLipschitzPenalty(1, 0.05))
+                # .add_penalty(L2Penalty(0.01))
         )
 
-        # vgg_loss_fn = VggGeneratorLoss(ParallelConfig.MAIN_DEVICE)
-
-        lrG = 0.0002
-        lrD = 0.0002
+        lrG = 0.0001
+        lrD = 0.0004
         self.optimizer = MinMaxOptimizer(self.gan_model.parameters(), lrG, lrD)
 
     def train(self, images: Tensor, masks: Mask):

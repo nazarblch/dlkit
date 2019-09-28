@@ -10,7 +10,7 @@ class Up2xConv2d(nn.Module):
     def __init__(self, in_ch, out_ch):
         super(Up2xConv2d, self).__init__()
         self.conv = nn.Sequential(
-            nn.ConvTranspose2d(in_ch, out_ch, 4, 2, 1, bias=False),
+            nn.utils.spectral_norm(nn.ConvTranspose2d(in_ch, out_ch, 4, 2, 1, bias=False)),
             double_conv(out_ch, out_ch)
         )
 
@@ -25,10 +25,10 @@ class Up4xConv2d(nn.Module):
     def __init__(self, in_ch, out_ch):
         super(Up4xConv2d, self).__init__()
         self.conv = nn.Sequential(
-            nn.ConvTranspose2d(in_ch, out_ch, 4, 1, 0, bias=False),
+            nn.utils.spectral_norm(nn.ConvTranspose2d(in_ch, out_ch, 4, 1, 0, bias=False)),
             nn.BatchNorm2d(out_ch),
             nn.ReLU(inplace=True),
-            nn.Conv2d(out_ch, out_ch, 3, stride=1, padding=1),
+            nn.utils.spectral_norm(nn.Conv2d(out_ch, out_ch, 3, stride=1, padding=1)),
             nn.BatchNorm2d(out_ch),
             nn.ReLU(inplace=True)
         )

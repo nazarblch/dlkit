@@ -1,4 +1,4 @@
-# Root directory for dataset
+# Root directory for datasets
 from typing import List
 
 import torch
@@ -6,7 +6,7 @@ from torchvision.datasets import Cityscapes
 from torchvision.transforms import transforms
 
 from data_loader.DataPath import DataPath
-from data_loader.data2d.segmentation_transform import Transformer
+from data_loader.data2d.transforms.segmentation import Transformer
 from framework.segmentation.Mask import MaskFactory
 from framework.parallel import ParallelConfig
 from framework.segmentation.split_and_fill import SplitAndFill

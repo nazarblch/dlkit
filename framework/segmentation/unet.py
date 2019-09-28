@@ -11,10 +11,10 @@ class double_conv(nn.Module):
     def __init__(self, in_ch, out_ch):
         super(double_conv, self).__init__()
         self.conv = nn.Sequential(
-            nn.Conv2d(in_ch, out_ch, 3, padding=1),
+            nn.utils.spectral_norm(nn.Conv2d(in_ch, out_ch, 3, padding=1)),
             nn.BatchNorm2d(out_ch),
             nn.LeakyReLU(0.1, inplace=True),
-            nn.Conv2d(out_ch, out_ch, 3, padding=1),
+            nn.utils.spectral_norm(nn.Conv2d(out_ch, out_ch, 3, padding=1)),
             nn.BatchNorm2d(out_ch),
             nn.LeakyReLU(0.1, inplace=True),
         )

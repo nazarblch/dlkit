@@ -6,7 +6,7 @@ import warnings
 
 
 def zoom(image, zoom_factor, order=3):
-    """Analogous to 2D `scipy.ndimage.zoom`, but for 3D data_loader.
+    """Analogous to 2D `scipy.ndimage.zoom`, but for 3D data.
 
     For 4D inputs the first dimension is considered channels.
     Interpolation is performed for each channel separately.
@@ -31,7 +31,7 @@ def zoom(image, zoom_factor, order=3):
             ]
             return np.stack(channels)
         else:
-            raise ValueError('this function operates on 3d volumes (possibly with multiple channels) only')
+            raise ValueError('this function operates on d3 volumes (possibly with multiple channels) only')
 
 
 def elastic_transform(image, alpha, sigma, random_state=None, order=0):

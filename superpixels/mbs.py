@@ -15,7 +15,7 @@ def superpixels(img: np.ndarray) -> np.ndarray:
     assert img.shape[2] <= 3
 
     mat = mbspy.Mat.from_array(img.astype(np.uint8))
-    sp = mbspy.superpixels(mat, img.shape[0]//2, 0.1)
+    sp = mbspy.superpixels(mat, int(img.shape[1]//2), 0.1)
     sp_nd = np.asarray(sp)
     # sp_nd += 1
 
@@ -71,7 +71,7 @@ def superpixels_tensor(image: Tensor) -> Tensor:
 
 if __name__ == "__main__":
 
-    img = cv2.imread('/home/nazar/Downloads/person.jpg')
+    img = cv2.imread('/home/nazar/PycharmProjects/segmentation_data/leftImg8bit/train/strasbourg/strasbourg_000000_000065_leftImg8bit.png')
     sp_nd = superpixels(img)
 
     print(sp_nd)

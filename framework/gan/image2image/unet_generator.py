@@ -17,7 +17,7 @@ class UNetGenerator(CG):
                  out_channels,
                  gen_size=32,
                  n_down=5,
-                 nc_max=512):
+                 nc_max=256):
         super(UNetGenerator, self).__init__(noise)
 
         middle_data_size = int(image_size * 2 ** (-n_down))
@@ -43,14 +43,14 @@ class UNetGenerator(CG):
 
         self.down_last_to_noise = nn.Sequential(
             View(-1, middle_nc * middle_data_size**2),
-            nn.Linear(middle_nc * middle_data_size**2, noise.size()),
+            nn.utils.spectral_norm(nn.Linear(middle_nc * middle_data_size**2, noise.size())),
             nn.ReLU(inplace=True)
         )
 
         self.noise_up_modules = nn.Sequential(
-            nn.Linear(2 * noise.size(), 2 * noise.size()),
+            nn.utils.spectral_norm(nn.Linear(2 * noise.size(), 2 * noise.size())),
             nn.ReLU(True),
-            nn.Linear(2 * noise.size(), 2 * noise.size()),
+            nn.utils.spectral_norm(nn.Linear(2 * noise.size(), 2 * noise.size())),
             nn.ReLU(True),
             View(-1, 2 * noise.size(), 1, 1),
             Up4xConv2d(2 * noise.size(), middle_nc)
@@ -68,15 +68,15 @@ class UNetGenerator(CG):
         self.unet = UNetExtra(
             n_down,
             in_block=nn.Sequential(
-                nn.Conv2d(in_channels, gen_size, 3, stride=1, padding=1),
+                nn.utils.spectral_norm(nn.Conv2d(in_channels, gen_size, 3, stride=1, padding=1)),
                 nn.BatchNorm2d(gen_size),
                 nn.ReLU(inplace=True)
             ),
             out_block=nn.Sequential(
-                nn.Conv2d(2 * gen_size, gen_size, 3, padding=1),
+                nn.utils.spectral_norm(nn.Conv2d(2 * gen_size, gen_size, 3, padding=1)),
                 nn.BatchNorm2d(gen_size),
                 nn.ReLU(inplace=True),
-                nn.ConvTranspose2d(gen_size, out_channels, 3, 1, 1, bias=False),
+                nn.utils.spectral_norm(nn.ConvTranspose2d(gen_size, out_channels, 3, 1, 1, bias=True)),
                 nn.Tanh()
             ),
             middle_block=self.down_last_to_noise,

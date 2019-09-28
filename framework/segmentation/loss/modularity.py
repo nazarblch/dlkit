@@ -41,13 +41,13 @@ class VGGModularity(SegmentationLoss):
         super(VGGModularity, self).__init__()
         self.weight = weight
         self.kernel_size = kernel_size
-        self.vgg = Vgg19(8).to(ParallelConfig.MAIN_DEVICE)
+        self.vgg = Vgg19(16).to(ParallelConfig.MAIN_DEVICE)
         if ParallelConfig.GPU_IDS.__len__() > 1:
             self.vgg = nn.DataParallel(self.vgg, ParallelConfig.GPU_IDS)
 
         self.downsample = nn.AvgPool2d(2, stride=2, count_include_pad=False)
 
-        self.modularity_vgg = nn.DataParallel(Modularity(self.kernel_size, sigma=0.002), ParallelConfig.GPU_IDS)
+        self.modularity_vgg = nn.DataParallel(Modularity(self.kernel_size, sigma=0.005), ParallelConfig.GPU_IDS)
 
     def down_sample_to(self, src: Tensor, target: Tensor) -> Tensor:
         down_src = src
@@ -62,7 +62,7 @@ class VGGModularity(SegmentationLoss):
         fich = nn.BatchNorm2d(fich.shape[1]).to(fich.device).forward(fich).detach()
 
         down_segm = self.down_sample_to(segmentation, fich)
-        print(down_segm.shape)
+        # print(down_segm.shape)
 
         norm = 2 * ParallelConfig.GPU_IDS.__len__()
 

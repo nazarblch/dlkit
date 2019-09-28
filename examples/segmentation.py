@@ -1,4 +1,4 @@
-# Root directory for dataset
+# Root directory for datasets
 from typing import List
 
 import torch

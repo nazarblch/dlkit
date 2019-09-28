@@ -16,7 +16,7 @@ from torch.utils import data
 
 class _BaseDataset(data.Dataset):
     """
-    Base dataset class
+    Base datasets class
     """
 
     def __init__(

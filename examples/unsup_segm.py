@@ -1,28 +1,23 @@
-# Root directory for dataset
+# Root directory for datasets
 from typing import List, Tuple
 
+import albumentations
 import torch
 from torch import nn, Tensor
 from torch.distributions import Bernoulli, Categorical
 from torchvision.datasets import Cityscapes
 from torchvision.transforms import transforms
 
-from data_loader.DataPath import DataPath
-from data_loader.data2d.segmentation_transform import Transformer
+from data.d2.datasets.superpixels import Superpixels
 from framework.Loss import Loss
-from framework.gan.cycle.model import CycleGAN
-from framework.gan.vgg.gan_loss import VggGeneratorLoss
 from framework.segmentation.Mask import MaskFactory, Mask
 from framework.parallel import ParallelConfig
 from framework.segmentation.base import PenalizedSegmentation
-from framework.segmentation.loss.entropy import SegmentationEntropy
 from framework.segmentation.loss.modularity import VGGModularity
-from framework.segmentation.loss.neighbour_diff import NeighbourDiffLoss
 from framework.segmentation.loss.sp_loss import SuperPixelsLoss
 from framework.segmentation.mask_to_image import MaskToImage
-from framework.segmentation.split_and_fill import SplitAndFill
 from framework.segmentation.unet import UNetSegmentation
-from viz.visualization import show_images, show_segmentation
+from viz.visualization import show_segmentation
 
 # Number of workers for dataloader
 workers = 10
@@ -30,7 +25,7 @@ workers = 10
 batch_size = 10
 # Spatial size of training images. All images will be resized to this
 #   size using a transformer.
-image_size = 128
+image_size = 256
 # Number of channels in the training images. For color images this is 3
 nc = 3
 # Size of z latent vector (i.e. size of generator input)
@@ -41,38 +36,32 @@ ngf = 64
 ndf = 64
 # Number of training epochs
 num_epochs = 30
+labels_count = 100
 
+dataset = Superpixels(
+    root="/home/nazar/Downloads/dogvscat/dataset/training_set/cats",
+    target_root="/home/nazar/Downloads/dogvscat/sp/dataset/training_set/cats",
+    compute_sp=False,
+    transforms_al=albumentations.Compose([
+        albumentations.Resize(image_size, image_size),
+        albumentations.CenterCrop(image_size, image_size),
+    ]),
+    transform=transforms.Compose([
+        transforms.ToTensor()
+    ]),
+    target_transform=transforms.ToTensor()
+)
 
-dataset = Cityscapes(DataPath.HOME_STREET,
-                     transform=transforms.Compose([
-                               transforms.Resize(image_size),
-                               transforms.CenterCrop(image_size),
-                               transforms.ToTensor(),
-                               transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-                    ]),
-                    target_transform=transforms.Compose([
-                               transforms.Resize(image_size),
-                               transforms.CenterCrop(image_size),
-                               transforms.ToTensor()
-                    ])
-                    )
-
-# Create the dataloader
-dataloader = torch.utils.data.DataLoader(dataset,
-                                         batch_size=batch_size,
-                                         shuffle=True,
-                                         num_workers=workers)
-
-
-labels_list: List[int] = list(range(20))
 
 segm_net = PenalizedSegmentation(
-    UNetSegmentation(labels_list.__len__())
+    # FCNSegmentation(100, n_conv=3)
+    UNetSegmentation(labels_count)
 )
-segm_net.add_penalty(SuperPixelsLoss())
+segm_net.add_penalty(SuperPixelsLoss(1.0))
+segm_net.add_penalty(VGGModularity(3, 1.0))
 
 
-# gan = MaskToImage(image_size, labels_list)
+gan = MaskToImage(image_size, labels_count)
 #
 # split_gan = SplitAndFill(image_size)
 #

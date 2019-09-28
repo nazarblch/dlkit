@@ -20,7 +20,7 @@ from .base import _BaseDataset
 
 class VOC(_BaseDataset):
     """
-    PASCAL VOC Segmentation dataset
+    PASCAL VOC Segmentation datasets
     """
 
     def __init__(self, year=2012, **kwargs):
@@ -55,7 +55,7 @@ class VOC(_BaseDataset):
 
 class VOCAug(_BaseDataset):
     """
-    PASCAL VOC Segmentation dataset with extra annotations
+    PASCAL VOC Segmentation datasets with extra annotations
     """
 
     def __init__(self, year=2012, **kwargs):
@@ -135,7 +135,7 @@ if __name__ == "__main__":
             label = label.astype(np.uint8)
 
             tiled_images = np.hstack((image, label))
-            # cv2.imwrite("./docs/dataset/voc12.png", tiled_images)
+            # cv2.imwrite("./docs/datasets/voc12.png", tiled_images)
             plt.imshow(np.dstack((tiled_images[..., 2::-1], tiled_images[..., 3])))
             plt.show()
             break
