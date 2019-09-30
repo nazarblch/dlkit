@@ -598,16 +598,16 @@ class NLayerDiscriminator(nn.Module):
             # norm_layer(ndf * nf_mult),
         ]
         sequence += [
-            spectral_norm(nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw), use_spectral_norm)
+            nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw),
         ]
 
-        if use_sigmoid:
-            sequence += [nn.Sigmoid()]
+        # if use_sigmoid:
+        #     sequence += [nn.Sigmoid()]
 
         self.model = nn.Sequential(*sequence)
 
     def forward(self, input):
-        res = self.model(input).sum(dim=(2, 3))
+        res = self.model(input)
 
         # print(res.shape)
 
