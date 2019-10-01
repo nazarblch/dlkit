@@ -33,7 +33,7 @@ class DCGenerator(G):
             ]
 
         layers += [
-            nn.Conv2d(nc_l_next, nc, 3, 1, 1, bias=True)
+            nn.Conv2d(nc_l_next, nc, 3, 1, 1, bias=False)
         ]
 
         self.main = nn.Sequential(*layers)

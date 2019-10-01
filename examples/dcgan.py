@@ -83,16 +83,23 @@ netG = DCGenerator(noise, image_size).to(device)
 netG.apply(weights_init)
 print(netG)
 
-netD = VGGDiscriminator().to(device)
+netD = DCDiscriminator().to(device)
 netD.apply(weights_init)
 print(netD)
+
+netDV = VGGDiscriminator().to(device)
+netDV.main.apply(weights_init)
+print(netDV)
 
 
 lr = 0.0001
 betas = (0.5, 0.999)
 
 gan_model = GANModel(netG, netD, DCGANLoss())
-optimizer = MinMaxOptimizer(gan_model.parameters(), lr, lr * 4)
+optimizer = MinMaxOptimizer(gan_model.parameters(), lr, lr * 2)
+
+gan_model_v = GANModel(netG, netDV, DCGANLoss())
+optimizer_v = MinMaxOptimizer(gan_model.parameters(), lr, lr * 2)
 
 iters = 0
 
@@ -102,6 +109,9 @@ for epoch in range(5):
     for i, data in enumerate(dataloader, 0):
 
         imgs = data[0].to(device)
+
+        loss = gan_model_v.loss_pair(imgs)
+        optimizer_v.train_step(loss)
 
         loss = gan_model.loss_pair(imgs)
         optimizer.train_step(loss)
