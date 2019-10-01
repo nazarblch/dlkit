@@ -1,5 +1,5 @@
 from framework.Loss import Loss
-from framework.nn.modules.common.vgg import Vgg19
+from framework.nn.modules.common.vgg import Vgg16
 from framework.nn.ops.image_pixel_dist import LocalPixelDistance
 from framework.nn.ops.pairwise_map import LocalPairwiseMap2D
 from torch import Tensor, nn
@@ -41,7 +41,7 @@ class VGGModularity(SegmentationLoss):
         super(VGGModularity, self).__init__()
         self.weight = weight
         self.kernel_size = kernel_size
-        self.vgg = Vgg19(16).to(ParallelConfig.MAIN_DEVICE)
+        self.vgg = Vgg16(16).to(ParallelConfig.MAIN_DEVICE)
         if ParallelConfig.GPU_IDS.__len__() > 1:
             self.vgg = nn.DataParallel(self.vgg, ParallelConfig.GPU_IDS)
 

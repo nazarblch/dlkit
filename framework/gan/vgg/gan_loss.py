@@ -1,7 +1,7 @@
 from torch import Tensor, nn
 
 from framework.Loss import Loss
-from framework.nn.modules.common.vgg import Vgg19
+from framework.nn.modules.common.vgg import Vgg16
 from framework.gan.GANLoss import GANLoss
 from framework.parallel import ParallelConfig
 
@@ -10,7 +10,7 @@ class VggGeneratorLoss(GANLoss, nn.Module):
 
     def __init__(self, depth: int = 20, weight: float = 1):
         super(VggGeneratorLoss, self).__init__()
-        self.vgg = Vgg19(depth).to(ParallelConfig.MAIN_DEVICE)
+        self.vgg = Vgg16(depth).to(ParallelConfig.MAIN_DEVICE)
         if ParallelConfig.GPU_IDS.__len__() > 1:
             self.vgg = nn.DataParallel(self.vgg, ParallelConfig.GPU_IDS)
 

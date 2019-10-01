@@ -4,7 +4,7 @@ from torch import nn, Tensor
 
 from framework.Loss import Loss
 from framework.gan.image2image.discriminator import Discriminator
-from framework.nn.modules.common.vgg import Vgg19
+from framework.nn.modules.common.vgg import Vgg16
 from framework.gan.GANModel import ConditionalGANModel
 from framework.gan.image2image.unet_generator import UNetGenerator
 from framework.gan.noise.normal import NormalNoise
@@ -32,7 +32,7 @@ class VggDotLoss(nn.Module):
 
     def __init__(self, depth: int = 15, weight: float = 1):
         super(VggDotLoss, self).__init__()
-        self.vgg = Vgg19(depth).to(ParallelConfig.MAIN_DEVICE)
+        self.vgg = Vgg16(depth).to(ParallelConfig.MAIN_DEVICE)
         if ParallelConfig.GPU_IDS.__len__() > 1:
             self.vgg = nn.DataParallel(self.vgg, ParallelConfig.GPU_IDS)
 

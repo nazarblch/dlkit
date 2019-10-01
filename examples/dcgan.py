@@ -8,23 +8,27 @@ import torchvision.transforms as transforms
 import torchvision.utils as vutils
 import numpy as np
 import matplotlib.pyplot as plt
+from torch.nn import init
 
 from framework.gan.GANModel import GANModel
-from framework.gan.dcgan.Discriminator import Discriminator
-from framework.gan.dcgan import Generator
+from framework.gan.dcgan.discriminator import DCDiscriminator
+from framework.gan.dcgan.generator import DCGenerator
+from framework.gan.dcgan.model import DCGANLoss
+from framework.gan.dcgan.vgg_discriminator import VGGDiscriminator
 from framework.gan.noise.normal import NormalNoise
 from framework.optim.min_max import MinMaxOptimizer
 from framework.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
 from framework.gan.wgan.WassersteinLoss import WassersteinLoss
+from viz.visualization import show_images
 
 manualSeed = 999
 random.seed(manualSeed)
 torch.manual_seed(manualSeed)
 
-dataroot = "/home/nazar/Downloads/celeba"
+dataroot = "/home/nazar/PycharmProjects/celeba"
 
-batch_size = 128
-image_size = 64
+batch_size = 32
+image_size = 128
 noise_size = 100
 
 dataset = dset.ImageFolder(root=dataroot,
@@ -41,30 +45,54 @@ dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
 device = torch.device("cuda")
 
 
-def weights_init(m):
-    classname = m.__class__.__name__
-    if classname.find('Conv') != -1:
-        nn.init.normal_(m.weight.data, 0.0, 0.02)
-    elif classname.find('BatchNorm') != -1:
-        nn.init.normal_(m.weight.data, 1.0, 0.02)
-        nn.init.constant_(m.bias.data, 0)
+# def weights_init(m):
+#     classname = m.__class__.__name__
+#     if classname.find('Conv') != -1:
+#         nn.init.normal_(m.weight.data, 0.0, 0.02)
+#     elif classname.find('BatchNorm') != -1:
+#         nn.init.normal_(m.weight.data, 1.0, 0.02)
+#         nn.init.constant_(m.bias.data, 0)
+
+def weights_init(net, init_type='normal', gain=0.02):
+    """Get different initial method for the network weights"""
+    def init_func(m):
+        classname = m.__class__.__name__
+        if hasattr(m, 'weight') and (classname.find('Conv')!=-1 or classname.find('Linear')!=-1):
+            if init_type == 'normal':
+                init.normal_(m.weight.data, 0.0, gain)
+            elif init_type == 'xavier':
+                init.xavier_normal_(m.weight.data, gain=gain)
+            elif init_type == 'kaiming':
+                init.kaiming_normal_(m.weight.data, a=0, mode='fan_in')
+            elif init_type == 'orthogonal':
+                init.orthogonal_(m.weight.data, gain=gain)
+            else:
+                raise NotImplementedError('initialization method [%s] is not implemented' % init_type)
+            if hasattr(m, 'bias') and m.bias is not None:
+                init.constant_(m.bias.data, 0.0)
+        elif classname.find('BatchNorm2d') != -1:
+            init.normal_(m.weight.data, 1.0, 0.02)
+            init.constant_(m.bias.data, 0.0)
+
+    print('initialize network with %s' % init_type)
+    net.apply(init_func)
 
 
 noise = NormalNoise(noise_size, device)
-netG = Generator(noise).to(device)
+netG = DCGenerator(noise, image_size).to(device)
 netG.apply(weights_init)
 print(netG)
 
-netD = Discriminator().to(device)
+netD = VGGDiscriminator().to(device)
 netD.apply(weights_init)
 print(netD)
 
 
 lr = 0.0001
-betas = (0.5, 0.9)
+betas = (0.5, 0.999)
 
-gan_model = GANModel(netG, netD, WassersteinLoss(1).add_penalty(AdaptiveLipschitzPenalty(1, 0.05)))
-optimizer = MinMaxOptimizer(gan_model.parameters(), lr, betas)
+gan_model = GANModel(netG, netD, DCGANLoss())
+optimizer = MinMaxOptimizer(gan_model.parameters(), lr, lr * 4)
 
 iters = 0
 
@@ -83,17 +111,11 @@ for epoch in range(5):
         if i % 10 == 0:
             print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f'
                   % (epoch, 5, i, len(dataloader),
-                     loss.discriminator_loss.item(), loss.generator_loss.item()))
+                     loss.max_loss.item(), loss.min_loss.item()))
 
         if iters % 50 == 0:
             with torch.no_grad():
                 fake = netG.forward(batch_size).detach().cpu()
-                plt.figure(figsize=(8, 8))
-                plt.axis("off")
-                plt.title("Training Images")
-                plt.imshow(
-                    np.transpose(vutils.make_grid(fake[:64], padding=2, normalize=True).cpu(),
-                                 (1, 2, 0)))
-                plt.show()
+                show_images(fake, 4, 4)
 
         iters += 1
