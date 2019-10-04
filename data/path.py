@@ -1,8 +1,14 @@
 
 
 class DataPath:
-    ZHORES_STREET = "/gpfs/gpfs0/n.buzun/segmentation_data"
-    HOME_STREET = "/home/nazar/PycharmProjects/segmentation_data"
 
-    ZHORES_CELEBA = "/gpfs/gpfs0/n.buzun/celeba"
-    HOME_CELEBA = "/home/nazar/PycharmProjects/celeba"
+    class CityScapes:
+        ZHORES = "/gpfs/gpfs0/n.buzun/segmentation_data"
+        HOME = "/home/nazar/PycharmProjects/segmentation_data"
+
+    class CelebA:
+        ZHORES = "/gpfs/gpfs0/n.buzun/celeba"
+        HOME = "/home/nazar/PycharmProjects/celeba"
+
+
+
