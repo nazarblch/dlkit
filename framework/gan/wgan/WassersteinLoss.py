@@ -2,7 +2,7 @@ from torch import Tensor
 
 from framework.Loss import Loss
 from framework.gan.GANLoss import GANLoss
-from framework.gan.penalties.LipschitzPenalty import LipschitzPenalty
+from framework.gan.loss.penalties import LipschitzPenalty
 
 
 class WassersteinLoss(GANLoss):
@@ -14,6 +14,6 @@ class WassersteinLoss(GANLoss):
         return Loss(-dgz.mean())
 
     def discriminator_loss(self, d_real: Tensor, d_fake: Tensor) -> Loss:
-        discriminator_loss = d_real.mean() - d_fake.mean()
+        discriminator_loss = (d_real).mean() - d_fake.mean()
 
         return Loss(discriminator_loss)

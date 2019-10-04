@@ -1,37 +1,32 @@
 from __future__ import print_function
 #%matplotlib inline
 import random
-import torch.nn as nn
 import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
-import torchvision.utils as vutils
-import numpy as np
-import matplotlib.pyplot as plt
 from torch.nn import init
 
+from data.path import DataPath
 from framework.gan.GANModel import GANModel
 from framework.gan.dcgan.discriminator import DCDiscriminator
 from framework.gan.dcgan.generator import DCGenerator
 from framework.gan.dcgan.model import DCGANLoss
 from framework.gan.dcgan.vgg_discriminator import VGGDiscriminator
+from framework.gan.loss.hinge import HingeLoss
 from framework.gan.noise.normal import NormalNoise
 from framework.optim.min_max import MinMaxOptimizer
-from framework.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
-from framework.gan.wgan.WassersteinLoss import WassersteinLoss
 from viz.visualization import show_images
 
 manualSeed = 999
 random.seed(manualSeed)
 torch.manual_seed(manualSeed)
-
-dataroot = "/home/nazar/PycharmProjects/celeba"
+print(torch.cuda.is_available())
 
 batch_size = 32
 image_size = 128
 noise_size = 100
 
-dataset = dset.ImageFolder(root=dataroot,
+dataset = dset.ImageFolder(root=DataPath.CelebA.HOME,
                            transform=transforms.Compose([
                                transforms.Resize(image_size),
                                transforms.CenterCrop(image_size),
@@ -42,7 +37,7 @@ dataset = dset.ImageFolder(root=dataroot,
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
                                          shuffle=True, num_workers=12)
 
-device = torch.device("cuda")
+device = torch.device("cuda:0")
 
 
 # def weights_init(m):
@@ -92,13 +87,13 @@ netDV.main.apply(weights_init)
 print(netDV)
 
 
-lr = 0.0001
+lr = 0.0002
 betas = (0.5, 0.999)
 
-gan_model = GANModel(netG, netD, DCGANLoss())
+gan_model = GANModel(netG, netD, HingeLoss())
 optimizer = MinMaxOptimizer(gan_model.parameters(), lr, lr * 2)
 
-gan_model_v = GANModel(netG, netDV, DCGANLoss())
+gan_model_v = GANModel(netG, netDV, HingeLoss())
 optimizer_v = MinMaxOptimizer(gan_model.parameters(), lr, lr * 2)
 
 iters = 0
@@ -110,12 +105,11 @@ for epoch in range(5):
 
         imgs = data[0].to(device)
 
-        loss = gan_model_v.loss_pair(imgs)
-        optimizer_v.train_step(loss)
+        # loss = gan_model_v.loss_pair(imgs)
+        # optimizer_v.train_step(loss)
 
         loss = gan_model.loss_pair(imgs)
         optimizer.train_step(loss)
-
 
         # Output training stats
         if i % 10 == 0:

@@ -5,10 +5,6 @@ import torch
 from torchvision.datasets import Cityscapes
 from torchvision.transforms import transforms
 
-from framework.gan.GANModel import ConditionalGANModel
-from framework.optim.min_max import MinMaxOptimizer, MinMaxLoss
-from framework.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
-from framework.gan.wgan.WassersteinLoss import WassersteinLoss
 from framework.segmentation.Mask import MaskFactory
 from framework.parallel import ParallelConfig
 from framework.segmentation.mask_to_image import MaskToImage

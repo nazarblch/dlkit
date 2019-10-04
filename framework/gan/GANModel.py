@@ -10,7 +10,7 @@ from framework.optim.min_max import MinMaxParameters, MinMaxLoss
 
 class GANModel:
 
-    def __init__(self, generator: Generator, discriminator: Discriminator, loss: GANLoss):
+    def __init__(self, generator: object, discriminator: object, loss: object) -> object:
         self.generator = generator
         self.discriminator = discriminator
         self.loss = loss

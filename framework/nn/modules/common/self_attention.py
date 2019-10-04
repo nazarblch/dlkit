@@ -30,9 +30,9 @@ class SelfAttention2d(nn.Module):
                             dims to 8 or more. Else specify output_dims"
             )
         super(SelfAttention2d, self).__init__()
-        self.query = nn.Conv2d(input_dims, output_dims, 1)
-        self.key = nn.Conv2d(input_dims, output_dims, 1)
-        self.value = nn.Conv2d(input_dims, input_dims, 1)
+        self.query = nn.utils.spectral_norm(nn.Conv2d(input_dims, output_dims, 1))
+        self.key = nn.utils.spectral_norm(nn.Conv2d(input_dims, output_dims, 1))
+        self.value = nn.utils.spectral_norm(nn.Conv2d(input_dims, input_dims, 1))
         self.gamma = nn.Parameter(torch.zeros(1))
         self.return_attn = return_attn
 

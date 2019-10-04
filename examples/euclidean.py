@@ -10,7 +10,7 @@ from framework.gan.euclidean import Discriminator
 from framework.gan.euclidean import Generator
 from framework.gan.noise.normal import NormalNoise
 from framework.optim.min_max import MinMaxOptimizer
-from framework.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
+from framework.gan.loss.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
 from framework.gan.wgan.WassersteinLoss import WassersteinLoss
 
 batch_size = 256

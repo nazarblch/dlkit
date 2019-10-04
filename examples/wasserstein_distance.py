@@ -3,7 +3,7 @@ from torch import optim
 
 from framework.gan.GANModel import GANModel
 from framework.gan.euclidean import Discriminator
-from framework.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
+from framework.gan.loss.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
 from framework.gan.wgan.WassersteinLoss import WassersteinLoss
 
 n = 1000

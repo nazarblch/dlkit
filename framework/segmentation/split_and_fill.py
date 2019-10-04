@@ -8,8 +8,8 @@ from framework.nn.modules.common.vgg import Vgg16
 from framework.gan.GANModel import ConditionalGANModel
 from framework.gan.image2image.unet_generator import UNetGenerator
 from framework.gan.noise.normal import NormalNoise
-from framework.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
-from framework.gan.penalties.l2_penalty import L2Penalty
+from framework.gan.loss.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
+from framework.gan.loss.penalties.l2_penalty import L2Penalty
 from framework.gan.wgan.WassersteinLoss import WassersteinLoss
 from framework.segmentation.Mask import Mask
 from framework.optim.min_max import MinMaxOptimizer, MinMaxLoss

@@ -1,5 +1,4 @@
 import torch
-from typing import List
 
 from torch import nn, Tensor
 
@@ -8,9 +7,6 @@ from framework.gan.GANModel import ConditionalGANModel
 from framework.gan.image2image.discriminator import Discriminator
 from framework.gan.image2image.unet_generator import UNetGenerator
 from framework.gan.noise.normal import NormalNoise
-from framework.gan.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
-from framework.gan.penalties.l2_penalty import L2Penalty
-from framework.gan.vgg.gan_loss import VggGeneratorLoss
 from framework.gan.wgan.WassersteinLoss import WassersteinLoss
 from framework.segmentation.Mask import Mask
 from framework.optim.min_max import MinMaxOptimizer, MinMaxLoss
