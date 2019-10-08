@@ -6,34 +6,35 @@ from torch import Tensor
 import matplotlib.pyplot as plt
 
 from framework.gan.GANModel import GANModel
-from framework.gan.euclidean import Discriminator
-from framework.gan.euclidean import Generator
+from framework.gan.euclidean.discriminator import EDiscriminator
+from framework.gan.euclidean.generator import EGenerator
+from framework.gan.loss.hinge import HingeLoss
 from framework.gan.noise.normal import NormalNoise
 from framework.optim.min_max import MinMaxOptimizer
 from framework.gan.loss.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
-from framework.gan.wgan.WassersteinLoss import WassersteinLoss
+from framework.gan.loss.wasserstein import WassersteinLoss
 
 batch_size = 256
 noise_size = 2
 
 
-device = torch.device("cuda:0")
+device = torch.device("cuda:1")
 
 noise = NormalNoise(noise_size, device)
-netG = Generator(noise).to(device)
+netG = EGenerator(noise).to(device)
 print(netG)
 
-netD = Discriminator().to(device)
+netD = EDiscriminator().to(device)
 print(netD)
 
 
-lr = 0.003
-betas = (0.5, 0.9)
+lr = 0.001
+betas = (0.5, 0.999)
 
 gan_model = GANModel(
     netG,
     netD,
-    WassersteinLoss(10).add_penalty(AdaptiveLipschitzPenalty(1, 0.05))
+    HingeLoss()
 )
 
 optimizer = MinMaxOptimizer(gan_model.parameters(), lr, 2 * lr, betas)
@@ -65,7 +66,7 @@ for iter in range(0, 3000):
 
     if iter % 100 == 0:
         # print(gan_model.loss.get_penalties()[1].weight)
-        print(str(loss.discriminator_loss.item()) + ", g = " + str(loss.generator_loss.item()))
+        print(str(loss.max_loss.item()) + ", g = " + str(loss.min_loss.item()))
 
 
 fake = netG.forward(3 * batch_size)

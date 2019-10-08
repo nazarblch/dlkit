@@ -3,7 +3,7 @@ from typing import List
 from torch import Tensor
 
 from framework.Loss import Loss
-from framework.gan.DiscriminatorPenalty import DiscriminatorPenalty
+from framework.gan.loss.penalties.DiscriminatorPenalty import DiscriminatorPenalty
 
 
 class L2Penalty(DiscriminatorPenalty):

@@ -2,9 +2,9 @@ import torch
 from torch import optim
 
 from framework.gan.GANModel import GANModel
-from framework.gan.euclidean import Discriminator
+from framework.gan.euclidean import discriminator
 from framework.gan.loss.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
-from framework.gan.wgan.WassersteinLoss import WassersteinLoss
+from framework.gan.loss.wasserstein import WassersteinLoss
 
 n = 1000
 xs = (torch.arange(0, n, dtype=torch.float32) / 100.0).view(n, 1)
@@ -13,7 +13,7 @@ device = torch.device("cpu")
 ys1: torch.Tensor = torch.cat((xs.cos(), xs.sin()), dim=1).to(device)
 ys2: torch.Tensor = torch.cat((xs.cos(), xs.sin()), dim=1).to(device) * 5
 
-netD = Discriminator().to(device)
+netD = discriminator().to(device)
 print(netD)
 
 gan_model = GANModel(None,

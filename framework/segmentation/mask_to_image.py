@@ -7,7 +7,7 @@ from framework.gan.GANModel import ConditionalGANModel
 from framework.gan.image2image.discriminator import Discriminator
 from framework.gan.image2image.unet_generator import UNetGenerator
 from framework.gan.noise.normal import NormalNoise
-from framework.gan.wgan.WassersteinLoss import WassersteinLoss
+from framework.gan.loss.wasserstein import WassersteinLoss
 from framework.segmentation.Mask import Mask
 from framework.optim.min_max import MinMaxOptimizer, MinMaxLoss
 from framework.parallel import ParallelConfig

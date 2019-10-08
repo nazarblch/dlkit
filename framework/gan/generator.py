@@ -16,6 +16,9 @@ class Generator(torch.nn.Module, ABC):
     @abstractmethod
     def _forward_impl(self, noise: Tensor) -> Tensor: pass
 
-    def forward(self, size: int, noise: Optional[Tensor] = None) -> Tensor:
-        z: Tensor = self.noise_gen.sample(size) if noise is None else noise
-        return self._forward_impl(z)
+    def forward(self, noise: Tensor) -> Tensor:
+        return self._forward_impl(noise)
+
+    def sample(self, n: int) -> Tensor:
+        z = self.noise_gen.sample(n)
+        return self.forward(z)

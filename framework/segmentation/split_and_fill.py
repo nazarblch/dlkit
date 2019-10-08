@@ -10,7 +10,7 @@ from framework.gan.image2image.unet_generator import UNetGenerator
 from framework.gan.noise.normal import NormalNoise
 from framework.gan.loss.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
 from framework.gan.loss.penalties.l2_penalty import L2Penalty
-from framework.gan.wgan.WassersteinLoss import WassersteinLoss
+from framework.gan.loss.wasserstein import WassersteinLoss
 from framework.segmentation.Mask import Mask
 from framework.optim.min_max import MinMaxOptimizer, MinMaxLoss
 from framework.parallel import ParallelConfig

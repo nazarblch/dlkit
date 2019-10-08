@@ -1,5 +1,6 @@
-from torch import Tensor
+import torch
 
+from torch import Tensor, nn
 from framework.Loss import Loss
 from framework.gan.GANLoss import GANLoss
 from framework.gan.conditional import ConditionalGenerator, ConditionalDiscriminator
@@ -10,7 +11,7 @@ from framework.optim.min_max import MinMaxParameters, MinMaxLoss
 
 class GANModel:
 
-    def __init__(self, generator: object, discriminator: object, loss: object) -> object:
+    def __init__(self, generator: nn.Module, discriminator: nn.Module, loss: GANLoss):
         self.generator = generator
         self.discriminator = discriminator
         self.loss = loss
@@ -27,8 +28,9 @@ class GANModel:
         DGz = self.discriminator.forward(fake)
         return self.loss.generator_loss(DGz, real, fake)
 
-    def loss_pair(self, real: Tensor) -> MinMaxLoss:
-        fake = self.generator.forward(real.size(0))
+    def loss_pair(self, real: Tensor, noize: Tensor) -> MinMaxLoss:
+
+        fake = self.generator.forward(noize)
         return MinMaxLoss(
             self.generator_loss(real, fake),
             self.discriminator_loss(real, fake)

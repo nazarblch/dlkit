@@ -4,10 +4,13 @@ from framework.gan.generator import Generator as G
 from framework.gan.noise import Noise
 
 
-class Generator(G):
+class EGenerator(G):
+
+    def _device(self):
+        return next(self.main.parameters()).device
 
     def __init__(self, noise: Noise):
-        super(Generator, self).__init__(noise)
+        super(EGenerator, self).__init__(noise)
         n_out = 2
         ngf = 32
         self.main = nn.Sequential(

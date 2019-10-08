@@ -5,7 +5,7 @@ import numpy
 from torch import Tensor
 
 from framework.Loss import Loss
-from framework.gan.DiscriminatorPenalty import DiscriminatorPenalty
+from framework.gan.loss.penalties.DiscriminatorPenalty import DiscriminatorPenalty
 
 
 class GANLoss(ABC):
@@ -24,13 +24,8 @@ class GANLoss(ABC):
 
         loss_sum: Loss = self.discriminator_loss(Dx, Dy)
 
-        rand = numpy.random
-
         for pen in self.get_penalties():
-            eps = rand.random_sample()
-            x0: List[Tensor] = [(xi * eps + yi * (1 - eps)).detach().requires_grad_(True) for xi, yi in zip(x_detach, y_detach)]
-            D0 = discriminator(x0)
-            loss_sum = loss_sum - pen.__call__(D0, x0)
+            loss_sum = loss_sum - pen.__call__(discriminator, Dx, Dy, x_detach, y_detach)
 
         return loss_sum
 
