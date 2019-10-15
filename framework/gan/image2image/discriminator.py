@@ -33,9 +33,10 @@ class Discriminator(ConditionalDiscriminator):
             self.main.add_module("disc_down_" + str(size), nn.Sequential(
                 nn.utils.spectral_norm(nn.Conv2d(ndf_tmp, nc_out, 4, 2, 1, bias=False)),
                 nn.LeakyReLU(0.2, inplace=True),
-                # nn.InstanceNorm2d(nc_out, affine=True),
+                nn.BatchNorm2d(nc_out),
                 nn.utils.spectral_norm(nn.Conv2d(nc_out, nc_out, 3, stride=1, padding=1)),
-                nn.LeakyReLU(0.2, inplace=True)
+                nn.LeakyReLU(0.2, inplace=True),
+                nn.BatchNorm2d(nc_out)
             ))
             size = int(size / 2)
             ndf_tmp = min(ndf_tmp * 2, max_nc)
@@ -44,7 +45,7 @@ class Discriminator(ConditionalDiscriminator):
             View(-1, 2 * 2 * ndf_tmp),
             nn.utils.spectral_norm(nn.Linear(2 * 2 * ndf_tmp, ndf_tmp)),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.utils.spectral_norm(nn.Linear(ndf_tmp, 1)),
+            nn.utils.spectral_norm(nn.Linear(ndf_tmp, 10)),
             # nn.Tanh()
         )
 

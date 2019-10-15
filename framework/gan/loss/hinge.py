@@ -1,15 +1,16 @@
-import torch
-from torch import Tensor, nn
+from typing import List
+
+from torch import Tensor
 
 from framework.Loss import Loss
-from framework.gan.GANLoss import GANLoss
+from framework.gan.loss.gan_loss import GANLoss
 
 
 class HingeLoss(GANLoss):
 
-    def generator_loss(self, dgz: Tensor, real: Tensor, fake: Tensor) -> Loss:
+    def _generator_loss(self, dgz: Tensor, real: List[Tensor], fake: List[Tensor]) -> Loss:
         return Loss(-dgz.mean())
 
-    def discriminator_loss(self, d_real: Tensor, d_fake: Tensor) -> Loss:
+    def _discriminator_loss(self, d_real: Tensor, d_fake: Tensor) -> Loss:
         discriminator_loss = (1 - d_real).relu().mean() + (1 + d_fake).relu().mean()
         return Loss(-discriminator_loss)

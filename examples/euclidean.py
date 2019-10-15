@@ -5,13 +5,13 @@ import torch
 from torch import Tensor
 import matplotlib.pyplot as plt
 
-from framework.gan.GANModel import GANModel
+from framework.gan.gan_model import GANModel
 from framework.gan.euclidean.discriminator import EDiscriminator
 from framework.gan.euclidean.generator import EGenerator
 from framework.gan.loss.hinge import HingeLoss
 from framework.gan.noise.normal import NormalNoise
 from framework.optim.min_max import MinMaxOptimizer
-from framework.gan.loss.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
+from framework.gan.loss.penalties.adaptive_lipschitz import AdaptiveLipschitzPenalty
 from framework.gan.loss.wasserstein import WassersteinLoss
 
 batch_size = 256

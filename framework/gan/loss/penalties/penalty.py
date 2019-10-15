@@ -4,6 +4,7 @@ from typing import Callable, List
 from torch import Tensor
 import numpy as np
 from framework.Loss import Loss
+from framework.gan.discriminator import Discriminator
 
 
 class DiscriminatorPenalty(ABC):
@@ -11,7 +12,7 @@ class DiscriminatorPenalty(ABC):
     @abstractmethod
     def __call__(
             self,
-            discriminator: Callable[[List[Tensor]], Tensor],
+            discriminator: Discriminator,
             dx: Tensor,
             dy: Tensor,
             x: List[Tensor],
@@ -31,14 +32,14 @@ class GradientDiscriminatorPenalty(DiscriminatorPenalty):
 
     def __call__(
             self,
-            discriminator: Callable[[List[Tensor]], Tensor],
+            discriminator: Discriminator,
             dx: Tensor,
             dy: Tensor,
             x: List[Tensor],
             y: List[Tensor]) -> Loss:
 
         x0 = self.gradient_point(x, y)
-        dx0: Tensor = discriminator(x0)
+        dx0: Tensor = discriminator.forward(*x0)
 
         grads: List[Tensor] = torch.autograd.grad(outputs=dx0,
                                    inputs=x0,
@@ -62,7 +63,7 @@ class ApproxGradientDiscriminatorPenalty(DiscriminatorPenalty):
 
     def __call__(
             self,
-            discriminator: Callable[[List[Tensor]], Tensor],
+            discriminator: Discriminator,
             dx: Tensor,
             dy: Tensor,
             x: List[Tensor],

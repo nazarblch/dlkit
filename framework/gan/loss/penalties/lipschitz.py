@@ -4,7 +4,7 @@ import torch
 from torch import Tensor
 
 from framework.Loss import Loss
-from framework.gan.loss.penalties.DiscriminatorPenalty import DiscriminatorPenalty, GradientDiscriminatorPenalty, \
+from framework.gan.loss.penalties.penalty import DiscriminatorPenalty, GradientDiscriminatorPenalty, \
     ApproxGradientDiscriminatorPenalty
 
 

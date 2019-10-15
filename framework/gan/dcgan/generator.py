@@ -12,7 +12,7 @@ from framework.nn.modules.resnet.residual import Up2xResidualBlock, PaddingType
 class DCGenerator(G):
 
     def __init__(self, noise: Noise, image_size: int, ngf=64):
-        super(DCGenerator, self).__init__(noise)
+        super(DCGenerator, self).__init__()
         n_up = int(math.log2(image_size / 4))
         assert 4 * (2 ** n_up) == image_size
         nc = 3
@@ -54,7 +54,7 @@ class DCGenerator(G):
 class ResDCGenerator(G):
 
     def __init__(self, noise: Noise, image_size: int, ngf=32):
-        super(ResDCGenerator, self).__init__(noise)
+        super(ResDCGenerator, self).__init__()
         n_up = int(math.log2(image_size / 4))
         assert 4 * (2 ** n_up) == image_size
         nc = 3

@@ -3,9 +3,10 @@ import torch
 from torch import nn, Tensor
 
 from framework.Loss import Loss
-from framework.gan.GANModel import ConditionalGANModel
+from framework.gan.gan_model import ConditionalGANModel
 from framework.gan.image2image.discriminator import Discriminator
 from framework.gan.image2image.unet_generator import UNetGenerator
+from framework.gan.loss.hinge import HingeLoss
 from framework.gan.noise.normal import NormalNoise
 from framework.gan.loss.wasserstein import WassersteinLoss
 from framework.segmentation.Mask import Mask
@@ -23,13 +24,11 @@ class MaskToImage:
                  generator_size: int = 32,
                  discriminator_size: int = 32):
 
+        self.noise = noise
         netG = UNetGenerator(noise, image_size, mask_channels_count, image_channels_count, generator_size) \
             .to(ParallelConfig.MAIN_DEVICE)
         netD = Discriminator(discriminator_size, image_channels_count + mask_channels_count, image_size) \
             .to(ParallelConfig.MAIN_DEVICE)
-
-        netG.apply(weights_init)
-        netD.apply(weights_init)
 
         if torch.cuda.device_count() > 1:
             netD = nn.DataParallel(netD, ParallelConfig.GPU_IDS)
@@ -37,23 +36,24 @@ class MaskToImage:
 
         self.gan_model = ConditionalGANModel(
             netG,
-            netD,
-            WassersteinLoss(10.0)
+            HingeLoss(netD)
+               # WassersteinLoss(10.0)
                 # .add_penalty(AdaptiveLipschitzPenalty(1, 0.05))
                 # .add_penalty(L2Penalty(0.01))
         )
 
-        lrG = 0.0001
-        lrD = 0.0004
-        self.optimizer = MinMaxOptimizer(self.gan_model.parameters(), lrG, lrD)
-
     def train(self, images: Tensor, masks: Mask):
 
-        loss: MinMaxLoss = self.gan_model.loss_pair(images, masks.tensor)
-        self.optimizer.train_step(loss)
+        z = self.noise.sample(images.shape[0])
+        self.gan_model.train(images, masks.tensor, z)
 
     def generator_loss(self, images: Tensor, masks: Mask) -> Loss:
-
-        fake = self.gan_model.generator.forward(masks.tensor)
+        z = self.noise.sample(images.shape[0])
+        fake = self.gan_model.generator.forward(masks.tensor, z)
         return self.gan_model.generator_loss(images, fake, masks.tensor)
+
+    def forward(self, masks: Mask) -> Tensor:
+        z = self.noise.sample(masks.tensor.shape[0])
+        fake = self.gan_model.generator.forward(masks.tensor, z)
+        return fake
 

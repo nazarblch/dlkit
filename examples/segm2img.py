@@ -74,7 +74,7 @@ for epoch in range(num_epochs):
 
         if i % 20 == 0:
             with torch.no_grad():
-                imlist = gan.gan_model.generator.forward(mask.tensor).detach().cpu()
+                imlist = gan.forward(mask).detach().cpu()
                 # show_images(mask.data.detach().cpu(), 4, 4)
                 show_images(imlist, 4, 4)
                 # show_segmentation(mask.data)

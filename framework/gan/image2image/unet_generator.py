@@ -85,6 +85,6 @@ class UNetGenerator(CG):
             up_block=up_block_factory
         )
 
-    def _forward_impl(self, noise: Tensor, condition: Tensor, *additional_input: Tensor) -> Tensor:
+    def _forward_impl(self, condition: Tensor, noise: Tensor) -> Tensor:
 
         return self.unet.forward(condition, noise)

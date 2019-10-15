@@ -2,7 +2,7 @@ import torch
 from torch import Tensor, nn
 
 from framework.Loss import Loss
-from framework.gan.GANLoss import GANLoss
+from framework.gan.loss.gan_loss import GANLoss
 
 
 class DCGANLoss(GANLoss):

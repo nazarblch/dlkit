@@ -2,7 +2,7 @@ from torch import Tensor, nn
 
 from framework.Loss import Loss
 from framework.nn.modules.common.vgg import Vgg16
-from framework.gan.GANLoss import GANLoss
+from framework.gan.loss.gan_loss import GANLoss
 from framework.parallel import ParallelConfig
 
 

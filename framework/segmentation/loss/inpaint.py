@@ -3,7 +3,7 @@ from torch import Tensor
 import numpy as np
 import torch
 from framework.Loss import LossModule, Loss
-from framework.gan.GANModel import ConditionalGANModel
+from framework.gan.gan_model import ConditionalGANModel
 from framework.gan.conditional import ConditionalGenerator, ConditionalDiscriminator
 from framework.gan.vgg.gan_loss import VggGeneratorLoss
 from framework.nn.modules.common.sp_pool import SPPoolMean

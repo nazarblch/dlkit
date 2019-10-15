@@ -1,9 +1,9 @@
 import torch
 from torch import optim
 
-from framework.gan.GANModel import GANModel
+from framework.gan.gan_model import GANModel
 from framework.gan.euclidean import discriminator
-from framework.gan.loss.penalties.AdaptiveLipschitzPenalty import AdaptiveLipschitzPenalty
+from framework.gan.loss.penalties.adaptive_lipschitz import AdaptiveLipschitzPenalty
 from framework.gan.loss.wasserstein import WassersteinLoss
 
 n = 1000
