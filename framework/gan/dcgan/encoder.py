@@ -38,7 +38,7 @@ class DCEncoder(G):
 
         self.linear = nn.utils.spectral_norm(nn.Linear(ndf * 8 * 4 * 4, nc_out))
 
-    def _forward_impl(self, x: Tensor) -> Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         conv = self.main(x)
         return self.linear(
             conv.view(conv.shape[0], -1)

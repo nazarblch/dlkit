@@ -2,12 +2,13 @@ from __future__ import print_function
 #%matplotlib inline
 import random
 import time
+from itertools import chain
 
 import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 from torch.nn import init
-from torch import nn, Tensor
+from torch import nn, Tensor, optim
 from data.path import DataPath
 from framework.Loss import Loss
 from framework.gan.dcgan.encoder import DCEncoder
@@ -23,6 +24,7 @@ from framework.gan.loss.penalties.lipschitz import ApproxLipschitzPenalty, Lipsc
 from framework.gan.loss.wasserstein import WassersteinLoss
 from framework.gan.noise.normal import NormalNoise
 from framework.gan.vgg.gan_loss import VggGeneratorLoss
+from framework.module import NamedModule
 from framework.optim.min_max import MinMaxOptimizer
 from framework.parallel import ParallelConfig
 from viz.visualization import show_images
@@ -50,10 +52,10 @@ dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size,
 device = torch.device("cuda:1")
 
 noise = NormalNoise(noise_size, device)
-netG = ResDCGenerator(noise, image_size).to(device)
+netG = DCGenerator(noise, image_size).to(device)
 print(netG)
 
-netD = ResDCDiscriminator().to(device)
+netD = DCDiscriminator().to(device)
 print(netD)
 
 
@@ -74,12 +76,16 @@ gan_model_back = GANModel(netG_back, HingeLoss(netD_z))
 
 l1_loss = nn.L1Loss()
 
-cycle_gan = CycleGAN[Tensor, Tensor](
-    netG,
-    netG_back,
-    loss_1=lambda z1, z2: Loss(l1_loss(z1, z2)),
-    loss_2=lambda img1, img2: Loss(l1_loss(img1, img2)),
-    lr=0.0002
+cycle_gan = CycleGAN(
+    NamedModule(netG, ["noise"], ["image"]),
+    NamedModule(netG_back, ["image"], ["noise"]),
+    loss_1={
+      "noise": lambda z1, z2: Loss(l1_loss(z1, z2))
+    },
+    loss_2={
+       "image": lambda img1, img2: Loss(l1_loss(img1, img2))
+    },
+    lr=lr
 )
 
 iters = 0
@@ -94,10 +100,9 @@ for epoch in range(5):
         z = noise.sample(batch_size)
 
         loss = gan_model.train(imgs, z)
-
         loss_back = gan_model_back.train(z, imgs)
 
-        cycle_gan.train(z, imgs)
+        cycle_gan.train({"noise": z}, {"image": imgs})
 
         # Output training stats
         if i % 10 == 0:
@@ -105,11 +110,11 @@ for epoch in range(5):
             t0 = time.time()
             print('[%d/%d][%d/%d]\tLoss_D: %.4f\tLoss_G: %.4f'
                   % (epoch, 5, i, len(dataloader),
-                     loss[1], loss[0]))
+                     loss[0], loss[1]))
 
         if iters % 50 == 0:
             with torch.no_grad():
-                fake = netG.forward(z).detach().cpu()
+                fake = netG(z).detach().cpu()
                 show_images(fake, 4, 4)
 
         iters += 1

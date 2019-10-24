@@ -47,7 +47,7 @@ class DCGenerator(G):
     def _device(self):
         return next(self.main.parameters()).device
 
-    def _forward_impl(self, noise: Tensor) -> Tensor:
+    def forward(self, noise: Tensor) -> Tensor:
         return self.main(noise.view(*noise.size(), 1, 1))
 
 
@@ -89,6 +89,6 @@ class ResDCGenerator(G):
     def _device(self):
         return next(self.main.parameters()).device
 
-    def _forward_impl(self, noise: Tensor) -> Tensor:
+    def forward(self, noise: Tensor) -> Tensor:
         return self.main(noise)
 

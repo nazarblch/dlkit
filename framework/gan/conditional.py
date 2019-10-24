@@ -16,10 +16,7 @@ class ConditionalGenerator(Generator):
         self.noise_gen = noise
 
     @abstractmethod
-    def _forward_impl(self, condition: Tensor, *noize: Tensor) -> Tensor: pass
-
-    def forward(self,  condition: Tensor, *noize: Tensor) -> Tensor:
-        return self._forward_impl(condition, *noize)
+    def forward(self, condition: Tensor, *noize: Tensor) -> Tensor: pass
 
 
 class ConditionalDiscriminator(Discriminator):

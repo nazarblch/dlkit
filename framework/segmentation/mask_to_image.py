@@ -1,8 +1,12 @@
+from typing import Tuple
+
 import torch
 
 from torch import nn, Tensor
 
 from framework.Loss import Loss
+from framework.gan.cycle.model import CycleGAN
+from framework.gan.dcgan.encoder import DCEncoder
 from framework.gan.gan_model import ConditionalGANModel
 from framework.gan.image2image.discriminator import Discriminator
 from framework.gan.image2image.unet_generator import UNetGenerator
@@ -36,15 +40,16 @@ class MaskToImage:
 
         self.gan_model = ConditionalGANModel(
             netG,
-            HingeLoss(netD)
-               # WassersteinLoss(10.0)
-                # .add_penalty(AdaptiveLipschitzPenalty(1, 0.05))
-                # .add_penalty(L2Penalty(0.01))
+            WassersteinLoss(netD, 10)
         )
 
-    def train(self, images: Tensor, masks: Mask):
+    def parameters(self):
+        return self.gan_model.generator.parameters()
 
-        z = self.noise.sample(images.shape[0])
+    def zero_grad(self):
+        self.gan_model.generator.zero_grad()
+
+    def train(self, images: Tensor, masks: Mask, z: Tensor):
         self.gan_model.train(images, masks.tensor, z)
 
     def generator_loss(self, images: Tensor, masks: Mask) -> Loss:
@@ -52,8 +57,10 @@ class MaskToImage:
         fake = self.gan_model.generator.forward(masks.tensor, z)
         return self.gan_model.generator_loss(images, fake, masks.tensor)
 
-    def forward(self, masks: Mask) -> Tensor:
-        z = self.noise.sample(masks.tensor.shape[0])
+    def forward(self, masks: Mask, z: Tensor) -> Tensor:
         fake = self.gan_model.generator.forward(masks.tensor, z)
         return fake
+
+    def __call__(self,  masks: Mask, z: Tensor) -> Tensor:
+        return self.forward(masks, z)
 

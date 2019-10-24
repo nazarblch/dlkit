@@ -6,7 +6,7 @@ from framework.nn.modules.resnet.residual import Down2xResidualBlock, PaddingTyp
 
 
 class DCDiscriminator(D):
-    def __init__(self, nc: int = 3, nc_out: int = 10, ndf: int = 32):
+    def __init__(self, nc: int = 3, nc_out: int = 1, ndf: int = 32):
         super(DCDiscriminator, self).__init__()
 
         self.main = nn.Sequential(

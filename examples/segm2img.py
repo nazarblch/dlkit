@@ -1,13 +1,19 @@
 # Root directory for datasets
-from typing import List
-
+from typing import List, Tuple
 import torch
+from torch import Tensor, nn
 from torchvision.datasets import Cityscapes
 from torchvision.transforms import transforms
 
-from framework.segmentation.Mask import MaskFactory
+from data.path import DataPath
+from framework.Loss import Loss
+from framework.gan.cycle.model import CycleGAN
+from framework.gan.dcgan.encoder import DCEncoder
+from framework.gan.noise.normal import NormalNoise
+from framework.segmentation.Mask import MaskFactory, Mask
 from framework.parallel import ParallelConfig
 from framework.segmentation.mask_to_image import MaskToImage
+from framework.segmentation.unet import UNetSegmentation
 from viz.visualization import show_images
 
 # Number of workers for dataloader
@@ -28,9 +34,7 @@ ndf = 64
 # Number of training epochs
 num_epochs = 30
 
-
-dataroot = "/home/nazar/PycharmProjects/segmentation_data"
-dataset = Cityscapes(dataroot,
+dataset = Cityscapes(DataPath.CityScapes.HOME,
                      transform=transforms.Compose([
                                transforms.Resize(image_size),
                                transforms.CenterCrop(image_size),
@@ -53,8 +57,33 @@ dataloader = torch.utils.data.DataLoader(dataset,
 
 labels_list: List[int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 33]
 
-gan = MaskToImage(image_size, len(labels_list))
+noise=NormalNoise(50, ParallelConfig.MAIN_DEVICE)
 
+mask2image = MaskToImage(image_size, len(labels_list))
+
+
+class ImageToMask(nn.Module):
+
+    def forward(self, image: Tensor) -> Tuple[Mask, Tensor]:
+        return self.segm(image), self.img2noize(image)
+
+    def __init__(self):
+        super(ImageToMask, self).__init__()
+        self.segm = UNetSegmentation(len(labels_list)).to(ParallelConfig.MAIN_DEVICE)
+        self.img2noize = DCEncoder(nc_out=noise.size()).to(ParallelConfig.MAIN_DEVICE)
+
+
+image2mask = ImageToMask()
+
+l1_loss = nn.L1Loss()
+ent_loss = nn.BCELoss()
+cycle_gan = CycleGAN[Tuple[Mask, Tensor], Tensor](
+    mask2image,
+    image2mask,
+    loss_1=lambda mask1, z1, mask2, z2: Loss(l1_loss(z1, z2)) + Loss(ent_loss(mask1.tensor, mask2.tensor)),
+    loss_2=lambda img1, img2: Loss(l1_loss(img1, img2)),
+    lr=0.0008
+)
 
 print("Starting Training Loop...")
 # For each epoch
@@ -67,14 +96,16 @@ for epoch in range(num_epochs):
 
         imgs = imgs.to(ParallelConfig.MAIN_DEVICE).tanh()
         mask = MaskFactory.from_class_map(labels.to(ParallelConfig.MAIN_DEVICE), labels_list)
+        z = noise.sample(batch_size)
 
-        gan.train(imgs, mask)
+        mask2image.train(imgs, mask, z)
+        cycle_gan.train((mask, z), imgs)
 
         print(i)
 
         if i % 20 == 0:
             with torch.no_grad():
-                imlist = gan.forward(mask).detach().cpu()
+                imlist = mask2image.forward(mask, z).detach().cpu()
                 # show_images(mask.data.detach().cpu(), 4, 4)
                 show_images(imlist, 4, 4)
                 # show_segmentation(mask.data)

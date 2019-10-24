@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from framework.nn.modules.unet.unet import UNet
+from framework.segmentation.Mask import Mask
 
 
 class double_conv(nn.Module):
@@ -133,5 +134,8 @@ class UNetSegmentation(UNet):
             down_block=down_block_factory,
             up_block=up_block_factory
         )
+
+    def forward(self, image: torch.Tensor) -> Mask:
+        return Mask(super().forward(image).sigmoid())
 
 
