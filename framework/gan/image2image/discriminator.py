@@ -45,7 +45,7 @@ class Discriminator(ConditionalDiscriminator):
             View(-1, 2 * 2 * ndf_tmp),
             nn.utils.spectral_norm(nn.Linear(2 * 2 * ndf_tmp, ndf_tmp)),
             nn.LeakyReLU(0.2, inplace=True),
-            nn.utils.spectral_norm(nn.Linear(ndf_tmp, 10)),
+            nn.utils.spectral_norm(nn.Linear(ndf_tmp, 1)),
             # nn.Tanh()
         )
 

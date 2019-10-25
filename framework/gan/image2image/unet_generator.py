@@ -76,8 +76,7 @@ class UNetGenerator(CG):
                 nn.utils.spectral_norm(nn.Conv2d(2 * gen_size, gen_size, 3, padding=1)),
                 nn.BatchNorm2d(gen_size),
                 nn.ReLU(inplace=True),
-                nn.utils.spectral_norm(nn.ConvTranspose2d(gen_size, out_channels, 3, 1, 1, bias=True)),
-                nn.Tanh()
+                nn.ConvTranspose2d(gen_size, out_channels, 3, 1, 1, bias=True)
             ),
             middle_block=self.down_last_to_noise,
             middle_block_extra=self.noise_up_modules,
@@ -85,6 +84,6 @@ class UNetGenerator(CG):
             up_block=up_block_factory
         )
 
-    def _forward_impl(self, condition: Tensor, noise: Tensor) -> Tensor:
+    def forward(self, condition: Tensor, noise: Tensor) -> Tensor:
 
         return self.unet.forward(condition, noise)

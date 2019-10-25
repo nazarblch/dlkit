@@ -51,7 +51,7 @@ class GradientDiscriminatorPenalty(DiscriminatorPenalty):
         if len(grads) == 1:
             grad = grads[0]
         else:
-            grad = torch.cat(*grads, dim=1)
+            grad = torch.cat(grads, dim=1)
 
         return self._compute(grad)
 

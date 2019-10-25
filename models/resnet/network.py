@@ -1,7 +1,7 @@
 from .base_function import *
 from .external_function import SpectralNorm
 import torch.nn.functional as F
-
+from torch import Tensor
 
 ##############################################################################################################
 # Network function
@@ -262,7 +262,10 @@ class ResDiscriminator(nn.Module):
         self.block1 = ResBlock(ndf * mult, ndf * mult, ndf * mult, norm_layer, nonlinearity, 'none', use_spect, use_coord)
         self.conv = nn.Conv2d(ndf * mult, 1, 3)
 
-    def forward(self, x):
+    def forward(self, *image: Tensor):
+
+        x = torch.cat(list(image), dim=1)
+
         out = self.block0(x)
         for i in range(self.layers - 1):
             if i == 2 and self.use_attn:

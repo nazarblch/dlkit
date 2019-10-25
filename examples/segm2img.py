@@ -10,6 +10,7 @@ from framework.Loss import Loss
 from framework.gan.cycle.model import CycleGAN
 from framework.gan.dcgan.encoder import DCEncoder
 from framework.gan.noise.normal import NormalNoise
+from framework.module import NamedModule
 from framework.segmentation.Mask import MaskFactory, Mask
 from framework.parallel import ParallelConfig
 from framework.segmentation.mask_to_image import MaskToImage
@@ -26,7 +27,7 @@ image_size = 128
 # Number of channels in the training images. For color images this is 3
 nc = 3
 # Size of z latent vector (i.e. size of generator input)
-nz = 100
+nz = 10
 # Size of feature maps in generator
 ngf = 64
 # Size of feature maps in discriminator
@@ -57,9 +58,9 @@ dataloader = torch.utils.data.DataLoader(dataset,
 
 labels_list: List[int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 33]
 
-noise=NormalNoise(50, ParallelConfig.MAIN_DEVICE)
+noise=NormalNoise(nz, ParallelConfig.MAIN_DEVICE)
 
-mask2image = MaskToImage(image_size, len(labels_list))
+mask2image = MaskToImage(image_size, len(labels_list), noise=noise)
 
 
 class ImageToMask(nn.Module):
@@ -77,12 +78,17 @@ image2mask = ImageToMask()
 
 l1_loss = nn.L1Loss()
 ent_loss = nn.BCELoss()
-cycle_gan = CycleGAN[Tuple[Mask, Tensor], Tensor](
-    mask2image,
-    image2mask,
-    loss_1=lambda mask1, z1, mask2, z2: Loss(l1_loss(z1, z2)) + Loss(ent_loss(mask1.tensor, mask2.tensor)),
-    loss_2=lambda img1, img2: Loss(l1_loss(img1, img2)),
-    lr=0.0008
+cycle_gan = CycleGAN(
+    NamedModule(mask2image, ["mask", "noise"], ["image"]),
+    NamedModule(image2mask, ["image"], ["mask", "noise"]),
+    loss_1={
+        "mask": lambda mask1, mask2: Loss(ent_loss(mask1.tensor, mask2.tensor)),
+        "noise": lambda z1, z2: Loss(l1_loss(z1, z2)),
+    },
+    loss_2={
+        "image": lambda img1, img2: Loss(l1_loss(img1, img2))
+    },
+    lr=0.0002
 )
 
 print("Starting Training Loop...")
@@ -94,12 +100,12 @@ for epoch in range(num_epochs):
         if labels.size(0) != batch_size:
             break
 
-        imgs = imgs.to(ParallelConfig.MAIN_DEVICE).tanh()
+        imgs = imgs.to(ParallelConfig.MAIN_DEVICE)
         mask = MaskFactory.from_class_map(labels.to(ParallelConfig.MAIN_DEVICE), labels_list)
         z = noise.sample(batch_size)
 
         mask2image.train(imgs, mask, z)
-        cycle_gan.train((mask, z), imgs)
+        cycle_gan.train({"mask": mask, "noise": z}, {"image": imgs})
 
         print(i)
 
