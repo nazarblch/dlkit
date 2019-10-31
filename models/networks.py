@@ -11,6 +11,7 @@ from torch.optim import lr_scheduler
 from models.modules import spectral_norm, UnetGenerator
 from models.resnet.base_function import ResBlockEncoderOptimized, ResBlock, ResBlockDecoder, Output
 from models.resnet.network import ResDiscriminator
+from torch import Tensor
 
 
 class Identity(nn.Module):
@@ -345,9 +346,9 @@ class ResnetGenerator(nn.Module):
 
         self.model = nn.Sequential(*model)
 
-    def forward(self, input):
+    def forward(self, condition: Tensor, noise: Tensor):
         """Standard forward"""
-        return self.model(input)
+        return self.model(condition)
 
 
 # class ResnetBlock(nn.Module):
