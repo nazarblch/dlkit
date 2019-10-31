@@ -252,7 +252,7 @@ class ResDiscriminator(nn.Module):
         for i in range(layers - 1):
             mult_prev = mult
             mult = min(2 ** (i + 1), img_f // ndf)
-            # self-attention
+            # self_attention
             if i == 2 and use_attn:
                 attn = Auto_Attn(ndf * mult_prev, norm_layer)
                 setattr(self, 'attn' + str(i), attn)
