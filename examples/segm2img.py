@@ -20,7 +20,7 @@ from viz.visualization import show_images
 # Number of workers for dataloader
 workers = 10
 # Batch size during training
-batch_size = 16
+batch_size = 64
 # Spatial size of training images. All images will be resized to this
 #   size using a transformer.
 image_size = 128
@@ -60,18 +60,18 @@ labels_list: List[int] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17,
 
 noise=NormalNoise(nz, ParallelConfig.MAIN_DEVICE)
 
-mask2image = MaskToImage(image_size, len(labels_list), noise=noise)
+mask2image = MaskToImage(image_size, len(labels_list))
 
 
 class ImageToMask(nn.Module):
 
-    def forward(self, image: Tensor) -> Tuple[Mask, Tensor]:
-        return self.segm(image), self.img2noize(image)
+    def forward(self, image: Tensor) -> Tensor:
+        return self.segm(image)
 
     def __init__(self):
         super(ImageToMask, self).__init__()
         self.segm = UNetSegmentation(len(labels_list)).to(ParallelConfig.MAIN_DEVICE)
-        self.img2noize = DCEncoder(nc_out=noise.size()).to(ParallelConfig.MAIN_DEVICE)
+        # self.img2noize = DCEncoder(nc_out=noise.size()).to(ParallelConfig.MAIN_DEVICE)
 
 
 image2mask = ImageToMask()
@@ -79,11 +79,10 @@ image2mask = ImageToMask()
 l1_loss = nn.L1Loss()
 ent_loss = nn.BCELoss()
 cycle_gan = CycleGAN(
-    NamedModule(mask2image, ["mask", "noise"], ["image"]),
-    NamedModule(image2mask, ["image"], ["mask", "noise"]),
+    NamedModule(mask2image.gan_model.generator, ["mask"], ["image"]),
+    NamedModule(image2mask, ["image"], ["mask"]),
     loss_1={
-        "mask": lambda mask1, mask2: Loss(ent_loss(mask1.tensor, mask2.tensor)),
-        "noise": lambda z1, z2: Loss(l1_loss(z1, z2)),
+        "mask": lambda mask1, mask2: Loss(ent_loss(mask1, mask2)),
     },
     loss_2={
         "image": lambda img1, img2: Loss(l1_loss(img1, img2))
@@ -101,17 +100,17 @@ for epoch in range(num_epochs):
             break
 
         imgs = imgs.to(ParallelConfig.MAIN_DEVICE)
-        mask = MaskFactory.from_class_map(labels.to(ParallelConfig.MAIN_DEVICE), labels_list)
-        z = noise.sample(batch_size)
+        mask = MaskFactory.from_class_map(labels.to(ParallelConfig.MAIN_DEVICE), labels_list).tensor
+        # z = noise.sample(batch_size)
 
-        mask2image.train(imgs, mask, z)
-        cycle_gan.train({"mask": mask, "noise": z}, {"image": imgs})
+        mask2image.train(imgs, mask)
+        cycle_gan.train({"mask": mask}, {"image": imgs})
 
         print(i)
 
         if i % 20 == 0:
             with torch.no_grad():
-                imlist = mask2image.forward(mask, z).detach().cpu()
+                imlist = mask2image.forward(mask).detach().cpu()
                 # show_images(mask.data.detach().cpu(), 4, 4)
                 show_images(imlist, 4, 4)
                 # show_segmentation(mask.data)

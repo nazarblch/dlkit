@@ -20,7 +20,7 @@ class PenalizedSegmentation:
              ParallelConfig.GPU_IDS
         )
         self.penalties: List[SegmentationLoss] = []
-        self.opt = torch.optim.Adam(self.segmentation.parameters(), lr=0.001)
+        self.opt = torch.optim.Adam(self.segmentation.parameters(), lr=0.0002)
         # self.opt = torch.optim.SGD(self.segmentation.parameters(), lr=0.01, momentum=0.9)
         self.sp_pool = SPPoolMean()
 

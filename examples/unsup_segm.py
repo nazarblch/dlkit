@@ -1,45 +1,42 @@
 # Root directory for datasets
 from typing import List, Tuple
-
+import matplotlib.pyplot as plt
 import albumentations
+import cv2
 import torch
 from torch import nn, Tensor
 from torch.distributions import Bernoulli, Categorical
 from torchvision.datasets import Cityscapes
 from torchvision.transforms import transforms
-
+import numpy as np
 from data.d2.datasets.superpixels import Superpixels
+from data.path import DataPath
 from framework.Loss import Loss
+from framework.gan.cycle.model import CycleGAN
+from framework.module import NamedModule
 from framework.segmentation.Mask import MaskFactory, Mask
 from framework.parallel import ParallelConfig
 from framework.segmentation.base import PenalizedSegmentation
+from framework.segmentation.fcn import FCNSegmentation
 from framework.segmentation.loss.modularity import VGGModularity
 from framework.segmentation.loss.sp_loss import SuperPixelsLoss
 from framework.segmentation.mask_to_image import MaskToImage
 from framework.segmentation.unet import UNetSegmentation
-from viz.visualization import show_segmentation
+from viz.visualization import show_segmentation, show_images, show_image
 
 # Number of workers for dataloader
 workers = 10
 # Batch size during training
-batch_size = 10
+batch_size = 32
 # Spatial size of training images. All images will be resized to this
 #   size using a transformer.
 image_size = 256
-# Number of channels in the training images. For color images this is 3
-nc = 3
-# Size of z latent vector (i.e. size of generator input)
-nz = 100
-# Size of feature maps in generator
-ngf = 64
-# Size of feature maps in discriminator
-ndf = 64
 # Number of training epochs
-num_epochs = 30
-labels_count = 100
+num_epochs = 300
+labels_count = 40
 
 dataset = Superpixels(
-    root="/home/nazar/Downloads/dogvscat/dataset/training_set/cats",
+    root=DataPath.CatsAndDogs.HOME_TRAIN + "/cats",
     target_root="/home/nazar/Downloads/dogvscat/sp/dataset/training_set/cats",
     compute_sp=False,
     transforms_al=albumentations.Compose([
@@ -47,35 +44,24 @@ dataset = Superpixels(
         albumentations.CenterCrop(image_size, image_size),
     ]),
     transform=transforms.Compose([
-        transforms.ToTensor()
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ]),
     target_transform=transforms.ToTensor()
 )
 
+dataloader = torch.utils.data.DataLoader(dataset,
+                                         batch_size=batch_size,
+                                         shuffle=True,
+                                         num_workers=workers)
+
 
 segm_net = PenalizedSegmentation(
-    # FCNSegmentation(100, n_conv=3)
+    # FCNSegmentation(labels_count, n_conv=3)
     UNetSegmentation(labels_count)
 )
-segm_net.add_penalty(SuperPixelsLoss(1.0))
-segm_net.add_penalty(VGGModularity(3, 1.0))
-
-
-gan = MaskToImage(image_size, labels_count)
-#
-# split_gan = SplitAndFill(image_size)
-#
-# cycle = CycleGAN[Tensor, Tensor](
-#     segm_net,
-#     gan.gan_model.generator,
-#     loss_1=VggGeneratorLoss(15, 1).forward,
-#     loss_2=lambda s1, s2:  (
-#         Loss(nn.BCELoss()(s1, s2.detach())) +
-#         NeighbourDiffLoss(3)(Mask(s1)) * 2 +
-#         SegmentationEntropy()(s1) * 2
-#     ),
-#     lr=0.0001/2
-# )
+segm_net.add_penalty(SuperPixelsLoss(0.01))
+# segm_net.add_penalty(VGGModularity(3, 0.001))
 
 
 def cat_sample(segm: Tensor) -> Tuple[Tensor, Mask]:
@@ -97,109 +83,47 @@ def be_sample(segm: Tensor) -> Tuple[Tensor, Mask]:
     return L,  Mask(mask_sample)
 
 
-# def train_gan(imgs: Tensor):
-#
-#     segm: Tensor = segm_net(imgs)
-#     L, mask = cat_sample(segm)
-#
-#     gan.train(imgs, mask)
+mask2image = MaskToImage(image_size, labels_count)
 
+l1_loss = nn.L1Loss()
+ent_loss = nn.BCELoss()
+cycle_gan = CycleGAN(
+    NamedModule(mask2image.gan_model.generator, ["mask"], ["image"]),
+    NamedModule(segm_net.segmentation, ["image"], ["mask"]),
+    loss_1={
+        "mask": lambda mask1, mask2: Loss((mask1.sigmoid() - mask2.sigmoid()).abs().mean()),
+    },
+    loss_2={
+        "image": lambda img1, img2: Loss(l1_loss(img1, img2))
+    },
+    lr=0.0002
+)
 
-# def train_split_gan(imgs: Tensor):
-#
-#     segm: Tensor = segm_net(imgs)
-#     L, mask = cat_sample(segm)
-#
-#     segment = Transformer.get_random_segment(mask)
-#     split_gan.train(imgs, segment)
-
-
-# def train_segm(imgs: Tensor):
-#
-#     segm: Tensor = segm_net(imgs)
-#
-#     mod = MultiLayerModularity(5)(imgs, segm)
-#     nb_diff = NeighbourDiffLoss(3)(Mask(segm)) * 2
-#     entropy = SegmentationEntropy()(segm)
-#
-#     loss = (
-#         gan.generator_loss(imgs, Mask(segm))
-#         + nb_diff
-#         - mod * 5
-#         + entropy
-#     )
-#
-#     print("===============================")
-#     print("segm loss:" + str(loss.item()))
-#     print("modularity:" + str(mod.item()))
-#     print("nb diff:" + str(nb_diff.item()))
-#     print("entropy:" + str(entropy.item()))
-#
-#     loss.minimize_step(segm_net.opt)
-#
-#     segm: Tensor = segm_net(imgs)
-#     L, mask = cat_sample(segm)
-#     cycle.train(imgs, mask.tensor)
-#
-#     segm: Tensor = segm_net(imgs)
-#     segment = Transformer.get_random_segment(Mask(segm))
-#     split_loss = (
-#         split_gan.generator_loss(imgs, segment) +
-#         NeighbourDiffLoss(3)(Mask(segm)) * 2 +
-#         SegmentationEntropy()(segm)
-#     )
-#
-#     split_loss.minimize_step(segm_net.opt)
-
-
-def train_sup_segm(imgs: Tensor, mask: Mask):
-
-    segm: Tensor = segm_net(imgs)
-
-    loss = Loss(nn.BCELoss()(segm, mask.tensor))
-
-    loss.minimize_step(segm_net.opt)
-
-
-# def show_fake_and_segm(imgs: Tensor):
-#
-#     with torch.no_grad():
-#         segm: Tensor = segm_net(imgs[:16])
-#         fake = gan.gan_model.generator(segm).detach()
-#         show_images(fake.cpu(), 4, 4)
-#         show_segmentation(segm.cpu())
-#
-#
-# def show_split_segm(imgs: Tensor):
-#
-#     with torch.no_grad():
-#         segm: Tensor = segm_net(imgs[:16])
-#         segment = Transformer.get_random_segment(Mask(segm))
-#         front, bk = split_gan.test(imgs[:16], segment)
-#         show_images(front.cpu(), 4, 4)
-#         show_images(bk.cpu(), 4, 4)
-#         show_segmentation(segm.cpu())
-
-
+label_colours = np.random.randint(255, size=(100, 3))
 print("Starting Training Loop...")
 # For each epoch
 for epoch in range(num_epochs):
     # For each batch in the dataloader
-    for i, (imgs, labels) in enumerate(dataloader, 0):
+    for i, (imgs, sp) in enumerate(dataloader, 0):
 
-        imgs = imgs.to(ParallelConfig.MAIN_DEVICE)
+        imgs = imgs.to(ParallelConfig.MAIN_DEVICE).type(torch.float32)
+        sp = sp.to(ParallelConfig.MAIN_DEVICE).type(torch.int64) + 1
+        mask = segm_net.forward(imgs, sp)
 
-        segm_net.train(imgs)
+        segm_net.train(imgs, sp)
+        mask2image.train(imgs, mask.detach())
+        loss = mask2image.generator_loss(imgs, mask)
+        loss.minimize_step(segm_net.opt)
+        cycle_gan.train({"mask": mask.detach()}, {"image": imgs})
 
-        # train_gan(imgs)
-        # train_split_gan(imgs)
-        # train_segm(imgs)
+        if i % 5 == 0:
+            im_target = mask.max(dim=1)[1].cpu().numpy()[0]
+            im_target_rgb = np.array([label_colours[c % 100] for c in im_target])
+            im_target_rgb = im_target_rgb.reshape((image_size, image_size, 3)).astype(np.uint8)
+            plt.imshow(im_target_rgb)
+            plt.show()
+            show_image(mask2image.forward(mask).detach().cpu()[0])
 
-        if i % 10 == 0:
-            print(i)
-            show_segmentation(segm_net.forward(imgs).cpu())
-            # show_split_segm(imgs)
-            # show_fake_and_segm(imgs)
 
 
 

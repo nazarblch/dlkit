@@ -25,4 +25,4 @@ class SuperPixelsLoss(SegmentationLoss):
             sp
         ).detach().max(dim=1)[1]
 
-        return Loss(self.loss(segm, sp_argmax)) * self.weight
+        return Loss(self.loss(segm.sigmoid(), sp_argmax)) * self.weight

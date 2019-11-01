@@ -10,5 +10,8 @@ class DataPath:
         ZHORES = "/gpfs/gpfs0/n.buzun/celeba"
         HOME = "/home/nazar/PycharmProjects/celeba"
 
+    class CatsAndDogs:
+        HOME_TRAIN = "/home/nazar/PycharmProjects/dogs-cats-images/dataset/training_set"
+
 
 

@@ -346,7 +346,7 @@ class ResnetGenerator(nn.Module):
 
         self.model = nn.Sequential(*model)
 
-    def forward(self, condition: Tensor, noise: Tensor):
+    def forward(self, condition: Tensor):
         """Standard forward"""
         return self.model(condition)
 

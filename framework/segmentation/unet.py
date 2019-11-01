@@ -135,7 +135,7 @@ class UNetSegmentation(UNet):
             up_block=up_block_factory
         )
 
-    def forward(self, image: torch.Tensor) -> Mask:
-        return Mask(super().forward(image).sigmoid())
+    def forward(self, image: torch.Tensor) -> torch.Tensor:
+        return super().forward(image)
 
 
