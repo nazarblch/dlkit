@@ -73,6 +73,14 @@ def get_color_table(dataset, device='cpu', dtype=torch.float32):
     colors = [color for _, _, color in dataset.classes]
     return torch.tensor(colors, device=device, dtype=dtype) / 255
 
+
+def show_image(img):
+    plt.imshow(np.transpose(
+        img,
+        (1, 2, 0)
+    ))
+    plt.show()
+
 def show_images(imlist, rows, cols):
     plt.figure(figsize=(rows, cols))
     plt.imshow(np.transpose(
