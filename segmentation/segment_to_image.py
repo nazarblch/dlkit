@@ -6,10 +6,10 @@ from typing import List
 from torch import nn, Tensor
 
 from framework.Loss import Loss
-from framework.gan.gan_model import ConditionalGANModel
+from gan.gan_model import ConditionalGANModel
 from framework.gan.conditional import ConditionalGenerator
-from framework.gan.image2image.discriminator import Discriminator
-from framework.gan.image2image.unet_generator import UNetGenerator
+from gan.image2image import Discriminator
+from gan.image2image import UNetGenerator
 from framework.gan.noise.Noise import Noise
 from framework.gan.noise.normal import NormalNoise
 from framework.gan.loss.penalties.adaptive_lipschitz import AdaptiveLipschitzPenalty

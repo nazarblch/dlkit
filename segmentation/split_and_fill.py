@@ -3,10 +3,10 @@ from typing import Tuple
 from torch import nn, Tensor
 
 from framework.Loss import Loss
-from framework.gan.image2image.discriminator import Discriminator
+from gan.image2image import Discriminator
 from framework.nn.modules.common.vgg import Vgg16
-from framework.gan.gan_model import ConditionalGANModel
-from framework.gan.image2image.unet_generator import UNetGenerator
+from gan.gan_model import ConditionalGANModel
+from gan.image2image import UNetGenerator
 from framework.gan.noise.normal import NormalNoise
 from framework.gan.loss.penalties.adaptive_lipschitz import AdaptiveLipschitzPenalty
 from framework.gan.loss.penalties.l2_penalty import L2Penalty

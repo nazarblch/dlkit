@@ -2,31 +2,22 @@ from __future__ import print_function
 #%matplotlib inline
 import random
 import time
-from itertools import chain
 
 import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
-from torch.nn import init
-from torch import nn, Tensor, optim
+from torch import nn
 from data.path import DataPath
-from framework.Loss import Loss
+from framework.loss import Loss
 from framework.gan.dcgan.encoder import DCEncoder
-from framework.gan.gan_model import GANModel
+from gan.gan_model import GANModel
 from framework.gan.cycle.model import CycleGAN
-from framework.gan.dcgan.discriminator import DCDiscriminator, ResDCDiscriminator
-from framework.gan.dcgan.generator import DCGenerator, ResDCGenerator
-from framework.gan.dcgan.model import DCGANLoss
-from framework.gan.dcgan.vgg_discriminator import VGGDiscriminator
+from framework.gan.dcgan.discriminator import DCDiscriminator
+from framework.gan.dcgan.generator import DCGenerator
 from framework.gan.euclidean.discriminator import EDiscriminator
 from framework.gan.loss.hinge import HingeLoss
-from framework.gan.loss.penalties.lipschitz import ApproxLipschitzPenalty, LipschitzPenalty
-from framework.gan.loss.wasserstein import WassersteinLoss
 from framework.gan.noise.normal import NormalNoise
-from framework.gan.vgg.gan_loss import VggGeneratorLoss
 from framework.module import NamedModule
-from framework.optim.min_max import MinMaxOptimizer
-from framework.parallel import ParallelConfig
 from viz.visualization import show_images
 
 manualSeed = 999

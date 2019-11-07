@@ -1,12 +1,7 @@
-from multiprocessing import Pool
 from torch import Tensor
 import numpy as np
-import torch
 from framework.Loss import LossModule, Loss
-from framework.gan.gan_model import ConditionalGANModel
-from framework.gan.conditional import ConditionalGenerator, ConditionalDiscriminator
-from framework.gan.vgg.gan_loss import VggGeneratorLoss
-from framework.nn.modules.common.sp_pool import SPPoolMean
+from gan.gan_model import ConditionalGANModel
 from framework.segmentation.loss.base import SegmentationLoss
 
 

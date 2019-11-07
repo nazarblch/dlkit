@@ -5,7 +5,7 @@ import torch
 from torch import Tensor
 import matplotlib.pyplot as plt
 
-from framework.gan.gan_model import GANModel
+from gan.gan_model import GANModel
 from framework.gan.euclidean.discriminator import EDiscriminator
 from framework.gan.euclidean.generator import EGenerator
 from framework.gan.loss.hinge import HingeLoss

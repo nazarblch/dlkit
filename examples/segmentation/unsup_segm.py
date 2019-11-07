@@ -1,28 +1,24 @@
 # Root directory for datasets
-from typing import List, Tuple
+from typing import Tuple
 import matplotlib.pyplot as plt
 import albumentations
-import cv2
 import torch
 from torch import nn, Tensor
 from torch.distributions import Bernoulli, Categorical
-from torchvision.datasets import Cityscapes
 from torchvision.transforms import transforms
 import numpy as np
 from data.d2.datasets.superpixels import Superpixels
 from data.path import DataPath
-from framework.Loss import Loss
+from framework.loss import Loss
 from framework.gan.cycle.model import CycleGAN
 from framework.module import NamedModule
 from framework.segmentation.Mask import MaskFactory, Mask
-from framework.parallel import ParallelConfig
+from config import ParallelConfig
 from framework.segmentation.base import PenalizedSegmentation
-from framework.segmentation.fcn import FCNSegmentation
-from framework.segmentation.loss.modularity import VGGModularity
 from framework.segmentation.loss.sp_loss import SuperPixelsLoss
 from framework.segmentation.mask_to_image import MaskToImage
 from framework.segmentation.unet import UNetSegmentation
-from viz.visualization import show_segmentation, show_images, show_image
+from viz.visualization import show_image
 
 # Number of workers for dataloader
 workers = 10
@@ -60,7 +56,7 @@ segm_net = PenalizedSegmentation(
     # FCNSegmentation(labels_count, n_conv=3)
     UNetSegmentation(labels_count)
 )
-segm_net.add_penalty(SuperPixelsLoss(0.01))
+segm_net.add_penalty(SuperPixelsLoss(0.3))
 # segm_net.add_penalty(VGGModularity(3, 0.001))
 
 

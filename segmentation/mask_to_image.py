@@ -1,25 +1,12 @@
-from typing import Tuple
-
 import torch
 
 from torch import nn, Tensor
 
 from framework.Loss import Loss
-from framework.gan.conditional import ConditionalGenerator
-from framework.gan.cycle.model import CycleGAN
-from framework.gan.dcgan.encoder import DCEncoder
-from framework.gan.gan_model import ConditionalGANModel
-from framework.gan.image2image.discriminator import Discriminator
-from framework.gan.image2image.unet_generator import UNetGenerator
+from gan.gan_model import ConditionalGANModel
 from framework.gan.loss.gan_loss import GANLossObject
 from framework.gan.loss.hinge import HingeLoss
-from framework.gan.noise.Noise import Noise
-from framework.gan.noise.normal import NormalNoise
-from framework.gan.loss.wasserstein import WassersteinLoss
-from framework.segmentation.Mask import Mask
-from framework.optim.min_max import MinMaxOptimizer, MinMaxLoss
 from framework.parallel import ParallelConfig
-from framework.segmentation.split_and_fill import weights_init
 from models.networks import ResnetGenerator
 from models.resnet.network import ResDiscriminator
 
@@ -48,7 +35,7 @@ class MaskToImage:
             netG,
             HingeLoss(netD) + GANLossObject(
                 lambda x, y: Loss.ZERO(),
-                lambda dgz, real, fake: Loss(nn.L1Loss()(fake[0], real[0])) * 10,
+                lambda dgz, real, fake: Loss(nn.L1Loss()(fake[0], real[0])) * 0.1,
                 netD
             )
         )
@@ -64,7 +51,7 @@ class MaskToImage:
 
     def generator_loss(self, images: Tensor, masks: Tensor) -> Loss:
         fake = self.gan_model.generator.forward(masks)
-        return self.gan_model.generator_loss(images, fake, masks) + Loss(nn.L1Loss()(fake, images)) * 10
+        return self.gan_model.generator_loss(images, fake, masks)
 
     def forward(self, masks: Tensor) -> Tensor:
         fake = self.gan_model.generator.forward(masks)

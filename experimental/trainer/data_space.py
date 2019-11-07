@@ -38,4 +38,4 @@ class SpaceToDataMap(Generic[Shape]):
             shape = [shape]
 
         for i, s_i in enumerate(shape):
-            assert s_i == data[i]
+            assert s_i == data[i].shape

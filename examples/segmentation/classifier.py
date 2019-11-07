@@ -1,22 +1,17 @@
 from typing import List
 
 import requests
-import torchvision
-from torchvision.datasets import CocoDetection, Cityscapes
+from torchvision.datasets import Cityscapes
 from torchvision.models import resnet50
 from torchvision.transforms import transforms
 import torch
 from torch import nn, Tensor
-from matplotlib import pyplot as plt
-import numpy as np
 
 from data_loader.DataPath import DataPath
-from data_loader.data2d.datasets import CocoStuff10k
-from framework.Loss import Loss
-from framework.parallel import ParallelConfig
+from framework.loss import Loss
+from config import ParallelConfig
 from framework.segmentation.Mask import Mask
-from framework.segmentation.loss.modularity import VGGModularity, Modularity
-from framework.segmentation.loss.neighbour_diff import NeighbourDiffLoss
+from segmentation.loss.neighbour_diff import NeighbourDiffLoss
 from framework.segmentation.unet import UNetSegmentation
 from viz.visualization import show_segmentation, show_images
 
